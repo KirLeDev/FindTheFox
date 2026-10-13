@@ -1,0 +1,26 @@
+{
+  "round1": {
+    "name": "Начинающий",
+    "animalCount": 25,
+    "roundTime": 20,
+    "foxVisibilityTime": 4,
+    "speedMultiplier": 1.0,
+    "falseFoxes": []
+  },
+  "round2": {
+    "name": "Опытный",
+    "animalCount": 45,
+    "roundTime": 15,
+    "foxVisibilityTime": 1.5,
+    "speedMultiplier": 1.5,
+    "falseFoxes": []
+  },
+  "round3": {
+    "name": "Мастер",
+    "animalCount": 70,
+    "roundTime": 12,
+    "foxVisibilityTime": 1.0,
+    "speedMultiplier": 2.0,
+    "falseFoxes": ["cat", "squirrel"]
+  }
+}

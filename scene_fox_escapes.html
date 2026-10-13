@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FindTheFox — Лиса ускользает</title>
+<link rel="stylesheet" href="shared/style.css">
+<style>
+  /* ══════════════════════════════════════════════════════
+     ПАНЕЛИ КАТ-СЦЕНЫ (как в scene_intro.html)
+     ══════════════════════════════════════════════════════ */
+  #panels {
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    z-index: 10;
+  }
+
+  .comic-panel {
+    display: none;
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+  }
+  .comic-panel.active {
+    display: block;
+    animation: panelIn 0.28s ease-out;
+  }
+  @keyframes panelIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* ── Зона арта ─────────────────────────────────────── */
+  .art {
+    position: absolute;
+    top: 80px;
+    right: 0;
+    bottom: 280px;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .art .row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 50px;
+  }
+
+  /* ── Капшн ─────────────────────────────────────────── */
+  .caption {
+    position: absolute;
+    bottom: 100px;
+    left: 60px;
+    right: 60px;
+    background: rgba(240, 224, 176, 0.96);
+    color: #2a1f14;
+    padding: 22px 26px;
+    border: 4px solid #4D2618;
+    border-radius: 10px;
+    font-size: 20px;
+    line-height: 1.45;
+    text-align: center;
+    font-style: italic;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45),
+                inset 0 0 40px rgba(255,255,255,0.25);
+    transform: rotate(-0.8deg);
+  }
+
+  /* ── Точки прогресса ───────────────────────────────── */
+  #dots {
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 30;
+  }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(240, 224, 176, 0.3);
+    transition: background 0.3s ease, transform 0.3s ease;
+  }
+  .dot.active {
+    background: var(--title);
+    transform: scale(1.4);
+  }
+  .dot.done {
+    background: rgba(240, 224, 176, 0.6);
+  }
+
+  /* ── Кнопка «Пропустить» ───────────────────────────── */
+  #skip-btn {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background: transparent;
+    border: 2px solid rgba(240, 224, 176, 0.4);
+    color: rgba(240, 224, 176, 0.75);
+    font-family: inherit;
+    font-size: 15px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    z-index: 30;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  #skip-btn:hover {
+    background: rgba(240, 224, 176, 0.1);
+    color: var(--title);
+    border-color: rgba(240, 224, 176, 0.7);
+  }
+
+  /* ── Подсказка ─────────────────────────────────────── */
+  #hint {
+    position: absolute;
+    bottom: 65px;
+    right: 70px;
+    color: rgba(240, 224, 176, 0.75);
+    font-size: 16px;
+    font-weight: 600;
+    z-index: 15;
+    pointer-events: none;
+    animation: hintPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes hintPulse {
+    0%, 100% { opacity: 0.4; transform: translateX(0); }
+    50%      { opacity: 1;   transform: translateX(6px); }
+  }
+
+  /* ── Персонажи ─────────────────────────────────────── */
+  .danich-svg {
+    display: block;
+    width: 260px;
+    height: 400px;
+    filter: drop-shadow(0 12px 14px rgba(0,0,0,0.35));
+  }
+  .danich-svg.small {
+    width: 200px;
+    height: 310px;
+  }
+
+  .fox.small {
+    width: 300px;
+    height: 300px;
+    transform: scale(0.75);
+    transform-origin: center center;
+  }
+
+  @keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-12px); }
+  }
+  .art.floaty .danich-svg {
+    animation: floatY 3.2s ease-in-out infinite;
+  }
+
+  /* ── Дуэт ──────────────────────────────────────────── */
+  .duo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+  }
+  .duo .danich-svg { margin-bottom: 40px; }
+  .duo .fox.small  { margin-bottom: 20px; }
+
+  /* ── Панель 1: телефон с мэтчами ───────────────────── */
+  .phone-wrap {
+    position: relative;
+    animation: floatY 2.6s ease-in-out infinite;
+  }
+  .phone-svg {
+    display: block;
+    width: 110px;
+    height: 170px;
+    filter: drop-shadow(0 10px 12px rgba(0,0,0,0.4));
+  }
+  .heart {
+    position: absolute;
+    font-size: 34px;
+    animation: heartUp 2s ease-in-out infinite;
+    opacity: 0;
+  }
+  .heart.h1 { top: -10px; left: -30px; animation-delay: 0s; }
+  .heart.h2 { top: 0; right: -34px; animation-delay: 0.7s; }
+  .heart.h3 { top: 60px; right: -40px; animation-delay: 1.3s; font-size: 26px; }
+  @keyframes heartUp {
+    0%   { transform: translateY(10px) scale(0.6); opacity: 0; }
+    30%  { opacity: 1; }
+    100% { transform: translateY(-26px) scale(1.1); opacity: 0; }
+  }
+
+  /* ── Панель 3: лиса убегает ────────────────────────── */
+  .runway {
+    position: relative;
+    width: 620px;
+    height: 420px;
+    overflow: hidden;
+  }
+  .runway .tree {
+    position: absolute;
+    bottom: 0;
+    width: 0; height: 0;
+    border-left: 44px solid transparent;
+    border-right: 44px solid transparent;
+    border-bottom: 160px solid #1F4D24;
+    filter: drop-shadow(0 10px 14px rgba(0,0,0,0.4));
+  }
+  .runway .tree.t1 { left: 10px;  transform: scale(1.15); }
+  .runway .tree.t2 { left: 140px; transform: scale(0.8); }
+  .runway .tree.t3 { left: 300px; transform: scale(1.05); }
+  .runway .tree.t4 { left: 430px; transform: scale(0.9); }
+  .runway .tree.t5 { left: 530px; transform: scale(1.2); }
+
+  .run-fox {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    margin-left: -150px;
+    animation: dash 1.9s ease-in infinite;
+  }
+  @keyframes dash {
+    0%   { transform: translateX(-460px); }
+    100% { transform: translateX(460px); }
+  }
+
+  .streak {
+    position: absolute;
+    height: 5px;
+    width: 90px;
+    background: rgba(240, 224, 176, 0.45);
+    border-radius: 3px;
+    animation: streak 0.9s linear infinite;
+  }
+  .streak.s1 { top: 180px; animation-delay: 0s; }
+  .streak.s2 { top: 230px; animation-delay: 0.25s; width: 60px; }
+  .streak.s3 { top: 280px; animation-delay: 0.5s; width: 110px; }
+  @keyframes streak {
+    from { transform: translateX(660px); }
+    to   { transform: translateX(-140px); }
+  }
+
+  /* ── Панель 4: город на горизонте ──────────────────── */
+  .city {
+    position: relative;
+    width: 620px;
+    height: 460px;
+  }
+  .city .moon {
+    position: absolute;
+    top: 10px; right: 70px;
+    width: 100px; height: 100px;
+    background: radial-gradient(circle at 35% 35%,
+      #FFF6D6 0%, #F0D078 60%, #C89A4A 100%);
+    border-radius: 50%;
+    box-shadow: 0 0 80px rgba(255, 230, 150, 0.55);
+  }
+  .city .b {
+    position: absolute;
+    bottom: 0;
+    background: #2A1F14;
+    border-radius: 8px 8px 0 0;
+    box-shadow: inset 0 8px 0 rgba(255,255,255,0.04);
+  }
+  .city .b1 { left: 60px;  width: 90px;  height: 170px; }
+  .city .b2 { left: 170px; width: 110px; height: 250px; }
+  .city .b3 { left: 300px; width: 80px;  height: 140px; }
+  .city .b4 { left: 400px; width: 120px; height: 210px; }
+  .city .b5 { left: 530px; width: 70px;  height: 120px; }
+  .city .w {
+    position: absolute;
+    width: 12px; height: 14px;
+    background: rgba(240, 208, 120, 0.85);
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(240, 208, 120, 0.5);
+  }
+  .city .walker {
+    position: absolute;
+    bottom: 0;
+    left: -40px;
+    animation: walk 2.4s ease-in-out infinite;
+  }
+  .city .walker .danich-svg {
+    animation: floatY 0.9s ease-in-out infinite;
+  }
+  @keyframes walk {
+    0%   { transform: translateX(0); }
+    50%  { transform: translateX(30px); }
+    100% { transform: translateX(0); }
+  }
+</style>
+</head>
+<body>
+<div id="game" class="scene">
+  <div class="bg-forest"></div>
+  <canvas id="particles" class="particles"></canvas>
+  <div class="vignette"></div>
+
+  <div id="dots"></div>
+  <button id="skip-btn">Пропустить →</button>
+
+  <div id="panels">
+
+    <!-- ─── ПАНЕЛЬ 1 — Три мэтча ──────────────────────── -->
+    <div class="comic-panel active" data-idx="0">
+      <div class="art floaty">
+        <div class="row">
+          <div data-danich="happy"></div>
+          <div class="phone-wrap">
+            <svg class="phone-svg" viewBox="0 0 70 110" xmlns="http://www.w3.org/2000/svg">
+              <rect x="4" y="4" width="62" height="102" rx="10" fill="#1c1c1c"/>
+              <rect x="10" y="14" width="50" height="74" rx="4" fill="#3A5A7A"/>
+              <path d="M 14 20 L 34 46 L 25 46 L 46 76" stroke="rgba(255,255,255,0.55)" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <circle cx="35" cy="97" r="4" fill="#444"/>
+            </svg>
+            <div class="heart h1">❤️</div>
+            <div class="heart h2">❤️</div>
+            <div class="heart h3">❤️</div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        Три мэтча! Данич выдохнул, вытер треснувший экран о майку
+        и помчался на опушку. Сердце стучало, как дятел по сосне.
+      </div>
+    </div>
+
+    <!-- ─── ПАНЕЛЬ 2 — Встреча ────────────────────────── -->
+    <div class="comic-panel" data-idx="1">
+      <div class="art">
+        <div class="duo">
+          <div data-danich="open" data-size="small"></div>
+          <div class="fox small">
+            <div class="body"></div>
+            <div class="ear left"></div>
+            <div class="ear right"></div>
+            <div class="face">
+              <div class="eye left"></div>
+              <div class="eye right"></div>
+              <div class="cheek left"></div>
+              <div class="cheek right"></div>
+              <div class="nose"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        Лиса ждала. Красное платье, хитрая улыбка.
+        «Ну что, бородач, поймал меня?» — «Поймал!» — радостно сказал Данич.
+      </div>
+    </div>
+
+    <!-- ─── ПАНЕЛЬ 3 — Побег ──────────────────────────── -->
+    <div class="comic-panel" data-idx="2">
+      <div class="art">
+        <div class="runway">
+          <div class="tree t1"></div>
+          <div class="tree t2"></div>
+          <div class="tree t3"></div>
+          <div class="tree t4"></div>
+          <div class="tree t5"></div>
+          <div class="streak s1"></div>
+          <div class="streak s2"></div>
+          <div class="streak s3"></div>
+          <div class="run-fox">
+            <div class="fox small">
+              <div class="body"></div>
+              <div class="ear left"></div>
+              <div class="ear right"></div>
+              <div class="face">
+                <div class="eye left"></div>
+                <div class="eye right"></div>
+                <div class="cheek left"></div>
+                <div class="cheek right"></div>
+                <div class="nose"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        Но стоило протянуть руку — рыжий хвост мелькнул между соснами.
+        «Сначала докажи, что достоин!» — донеслось из чащи.
+      </div>
+    </div>
+
+    <!-- ─── ПАНЕЛЬ 4 — Дорога в город ─────────────────── -->
+    <div class="comic-panel" data-idx="3">
+      <div class="art">
+        <div class="city">
+          <div class="moon"></div>
+          <div class="b b1"></div>
+          <div class="b b2"></div>
+          <div class="b b3"></div>
+          <div class="b b4"></div>
+          <div class="b b5"></div>
+          <div class="w" style="left:200px; bottom:180px"></div>
+          <div class="w" style="left:230px; bottom:120px"></div>
+          <div class="w" style="left:430px; bottom:150px"></div>
+          <div class="w" style="left:470px; bottom:90px"></div>
+          <div class="w" style="left:95px;  bottom:110px"></div>
+          <div class="walker">
+            <div data-danich="worried" data-size="small"></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        Единственный след вёл за лес — туда, где гудит большой город.
+        Данич подтянул носки, вздохнул и шагнул вперёд.
+      </div>
+    </div>
+
+  </div>
+
+  <div id="hint">нажми, чтобы продолжить ▶</div>
+
+  <div class="fade" id="fade"></div>
+</div>
+
+<script src="shared/settings.js"></script>
+<script src="shared/particles.js"></script>
+<script src="shared/progress.js"></script>
+<script src="shared/sfx.js"></script>
+<script src="shared/music.js"></script>
+<script>FTMusic.play('forest');</script>
+<script>
+(function () {
+  'use strict';
+
+  // ── Данич: общий SVG с вариантами лица ──────────────
+  var DANICH_BODY =
+    '<rect x="55" y="255" width="45" height="65" rx="10" fill="#5A4630"/>' +
+    '<rect x="120" y="255" width="45" height="65" rx="10" fill="#5A4630"/>' +
+    '<rect x="50" y="308" width="55" height="18" rx="6" fill="#E8E8D8"/>' +
+    '<rect x="115" y="308" width="55" height="18" rx="6" fill="#E8E8D8"/>' +
+    '<rect x="50" y="318" width="55" height="4" fill="#A67B5B"/>' +
+    '<rect x="115" y="318" width="55" height="4" fill="#A67B5B"/>' +
+    '<rect x="8" y="175" width="40" height="105" rx="20" fill="#7A8C4A"/>' +
+    '<rect x="172" y="175" width="40" height="105" rx="20" fill="#7A8C4A"/>' +
+    '<circle cx="28" cy="278" r="17" fill="#E8B98A"/>' +
+    '<circle cx="192" cy="278" r="17" fill="#E8B98A"/>' +
+    '<path d="M 28 180 Q 28 158 55 152 L 165 152 Q 192 158 192 180 L 192 270 Q 192 285 175 285 L 45 285 Q 28 285 28 270 Z" fill="#7A8C4A"/>' +
+    '<path d="M 28 268 Q 110 288 192 268 L 192 278 Q 110 298 28 278 Z" fill="#5F7038"/>' +
+    '<ellipse cx="110" cy="95" rx="55" ry="55" fill="#E8B98A"/>' +
+    '<path d="M 62 118 Q 62 168 110 178 Q 158 168 158 118 Q 138 148 110 148 Q 82 148 62 118 Z" fill="#6B4423"/>' +
+    '<ellipse cx="110" cy="108" rx="8" ry="6" fill="#D89B70"/>' +
+    '<path d="M 58 72 Q 58 46 78 38 Q 68 58 66 82 Z" fill="#5A3A1F"/>' +
+    '<path d="M 162 72 Q 162 46 142 38 Q 152 58 154 82 Z" fill="#5A3A1F"/>' +
+    '<ellipse cx="100" cy="52" rx="22" ry="12" fill="rgba(255,255,255,0.18)"/>' +
+    '<ellipse cx="56" cy="98" rx="8" ry="12" fill="#E8B98A"/>' +
+    '<ellipse cx="164" cy="98" rx="8" ry="12" fill="#E8B98A"/>';
+
+  var DANICH_FACES = {
+    open:
+      '<ellipse cx="88" cy="88" rx="5" ry="6" fill="#1a1a1a"/>' +
+      '<ellipse cx="132" cy="88" rx="5" ry="6" fill="#1a1a1a"/>' +
+      '<circle cx="90" cy="86" r="2" fill="#fff"/>' +
+      '<circle cx="134" cy="86" r="2" fill="#fff"/>' +
+      '<path d="M 102 122 Q 110 128 118 122" stroke="#8B6B4A" stroke-width="2" fill="none" stroke-linecap="round"/>',
+    happy:
+      '<path d="M 83 92 Q 88 85 93 92" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+      '<path d="M 127 92 Q 132 85 137 92" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+      '<path d="M 96 118 Q 110 133 124 118" stroke="#8B6B4A" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
+    worried:
+      '<path d="M 83 86 Q 88 92 93 86" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+      '<path d="M 127 86 Q 132 92 137 86" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+      '<path d="M 100 126 Q 110 122 120 126" stroke="#8B6B4A" stroke-width="2" fill="none" stroke-linecap="round"/>'
+  };
+
+  function danichSVG(face, small) {
+    return '<svg class="danich-svg' + (small ? ' small' : '') +
+      '" viewBox="0 0 220 340" xmlns="http://www.w3.org/2000/svg">' +
+      DANICH_BODY + (DANICH_FACES[face] || DANICH_FACES.open) + '</svg>';
+  }
+
+  document.querySelectorAll('[data-danich]').forEach(function (el) {
+    el.innerHTML = danichSVG(el.dataset.danich, el.dataset.size === 'small');
+  });
+
+  // ── Навигация по панелям (как в scene_intro.html) ───
+  const gameEl   = document.getElementById('game');
+  const fadeEl   = document.getElementById('fade');
+  const panelsEl = document.getElementById('panels');
+  const dotsEl   = document.getElementById('dots');
+  const skipEl   = document.getElementById('skip-btn');
+  const hint     = document.getElementById('hint');
+
+  FTSettings.fitScene(gameEl);
+  FTParticles.attach(document.getElementById('particles')).start();
+
+  const panels = panelsEl.querySelectorAll('.comic-panel');
+  const total  = panels.length;
+
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('span');
+    d.className = 'dot';
+    dotsEl.appendChild(d);
+  }
+  const dots = dotsEl.querySelectorAll('.dot');
+
+  let current = 0;
+  let isTransitioning = false;
+
+  function refreshMeta() {
+    dots.forEach(function (d, i) {
+      d.classList.remove('active', 'done');
+      if (i < current)   d.classList.add('done');
+      if (i === current) d.classList.add('active');
+    });
+    hint.textContent = (current === total - 1)
+      ? 'нажми, чтобы идти дальше ▶'
+      : 'нажми, чтобы продолжить ▶';
+  }
+
+  function show(index) {
+    if (index < 0 || index >= total) return;
+    if (isTransitioning) return;
+    if (index === current &&
+        panels[index].classList.contains('active')) return;
+    isTransitioning = true;
+
+    for (let i = 0; i < total; i++) panels[i].classList.remove('active');
+    current = index;
+    panels[current].classList.add('active');
+
+    refreshMeta();
+    setTimeout(function () { isTransitioning = false; }, 300);
+  }
+
+  function next() {
+    if (current < total - 1) show(current + 1);
+    else finish();
+  }
+
+  // Прогресс по главе 1 уже записан в game1_tinder.html.
+  // Дальше — выбор глав (глава 2 к этому моменту разблокирована).
+  function finish() {
+    FTSettings.vibrate(); FTSfx.play('tap');
+    fadeEl.classList.add('on');
+    setTimeout(function () {
+      window.location.href = 'chapters.html';
+    }, 450);
+  }
+
+  panelsEl.addEventListener('click', function (e) {
+    if (e.target === skipEl || skipEl.contains(e.target)) return;
+    FTSettings.vibrate(); FTSfx.play('tap');
+    next();
+  });
+
+  skipEl.addEventListener('click', function (e) {
+    e.stopPropagation();
+    finish();
+  });
+
+  let touchStartX = 0;
+  panelsEl.addEventListener('touchstart', function (e) {
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  panelsEl.addEventListener('touchend', function (e) {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (dx < -50) { FTSettings.vibrate(); FTSfx.play('tap'); next(); }
+    if (dx >  50) {
+      FTSettings.vibrate(); FTSfx.play('tap');
+      if (current > 0) show(current - 1);
+    }
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+      FTSettings.vibrate(); FTSfx.play('tap'); next();
+    } else if (e.key === 'ArrowLeft') {
+      if (current > 0) show(current - 1);
+    } else if (e.key === 'Escape') {
+      finish();
+    }
+  });
+
+  refreshMeta();
+
+  fadeEl.classList.add('on');
+  setTimeout(function () {
+    fadeEl.classList.remove('on');
+  }, 80);
+})();
+</script>
+</body>
+</html>

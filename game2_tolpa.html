@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FindTheFox — Глава 2: Город</title>
+<link rel="stylesheet" href="shared/style.css">
+<style>
+  /* ══════════════════════════════════════════════════════
+     ФОН ГОРОДА
+     ══════════════════════════════════════════════════════ */
+  .bg-city {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #4A3B30 0%, #3A2E26 45%, #2A211B 100%);
+  }
+  .bg-city .roof {
+    position: absolute;
+    top: 0;
+    background: #2A1F14;
+    border-radius: 0 0 10px 10px;
+    box-shadow: inset 0 -10px 0 rgba(255,255,255,0.04);
+  }
+  .bg-city .stall {
+    position: absolute;
+    bottom: 0;
+    height: 70px;
+    background: repeating-linear-gradient(90deg,
+      #8C3B2A 0 30px, #E8D4A0 30px 60px);
+    border-radius: 12px 12px 0 0;
+    opacity: 0.55;
+  }
+  .bg-city .cobbles {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.05) 2px, transparent 3px);
+    background-size: 46px 46px;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     КАТ-СЦЕНА
+     ══════════════════════════════════════════════════════ */
+  #intro { position: absolute; inset: 0; z-index: 60; }
+  #intro.hidden { display: none; }
+
+  .comic-panel { display: none; position: absolute; inset: 0; }
+  .comic-panel.active { display: block; animation: fadeIn 0.28s ease-out; }
+
+  .art {
+    position: absolute;
+    top: 80px; right: 0; bottom: 280px; left: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .caption {
+    position: absolute;
+    bottom: 100px; left: 60px; right: 60px;
+    background: rgba(240, 224, 176, 0.96);
+    color: #2a1f14;
+    padding: 22px 26px;
+    border: 4px solid #4D2618;
+    border-radius: 10px;
+    font-size: 20px;
+    line-height: 1.45;
+    text-align: center;
+    font-style: italic;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45), inset 0 0 40px rgba(255,255,255,0.25);
+    transform: rotate(-0.8deg);
+  }
+  .caption b { font-style: normal; color: #8C2A1A; }
+
+  #dots {
+    position: absolute; top: 40px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 30;
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(240, 224, 176, 0.3);
+    transition: background 0.3s ease, transform 0.3s ease;
+  }
+  .dot.active { background: var(--title); transform: scale(1.4); }
+  .dot.done   { background: rgba(240, 224, 176, 0.6); }
+
+  #skip-btn {
+    position: absolute; top: 30px; right: 30px;
+    background: transparent;
+    border: 2px solid rgba(240, 224, 176, 0.4);
+    color: rgba(240, 224, 176, 0.75);
+    font-family: inherit; font-size: 15px;
+    padding: 8px 16px; border-radius: 20px;
+    cursor: pointer; z-index: 30;
+  }
+  #skip-btn:hover { background: rgba(240, 224, 176, 0.1); }
+
+  #hint {
+    position: absolute; bottom: 65px; right: 70px;
+    color: rgba(240, 224, 176, 0.75);
+    font-size: 16px; font-weight: 600;
+    z-index: 15; pointer-events: none;
+    animation: hintPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes hintPulse {
+    0%, 100% { opacity: 0.4; transform: translateX(0); }
+    50%      { opacity: 1;   transform: translateX(6px); }
+  }
+
+  .danich-svg {
+    display: block; width: 260px; height: 400px;
+    filter: drop-shadow(0 12px 14px rgba(0,0,0,0.35));
+  }
+  .danich-svg.small { width: 200px; height: 310px; }
+  @keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-12px); }
+  }
+  .floaty .danich-svg { animation: floatY 3.2s ease-in-out infinite; }
+
+  .scene-row { display: flex; align-items: center; justify-content: center; gap: 24px; }
+  .mini-crowd { display: flex; flex-wrap: wrap; justify-content: center; width: 400px; gap: 12px; }
+  .mini-crowd .animal { position: relative; flex-shrink: 0; }
+
+  .city-skyline { position: relative; width: 620px; height: 440px; }
+  .city-skyline .b {
+    position: absolute; bottom: 0; background: #2A1F14;
+    border-radius: 8px 8px 0 0;
+    box-shadow: inset 0 8px 0 rgba(255,255,255,0.04);
+  }
+  .city-skyline .w {
+    position: absolute; width: 12px; height: 14px;
+    background: rgba(240, 208, 120, 0.85); border-radius: 2px;
+    box-shadow: 0 0 8px rgba(240, 208, 120, 0.5);
+  }
+  .city-skyline .tree {
+    position: absolute; bottom: 0; width: 0; height: 0;
+    border-left: 40px solid transparent; border-right: 40px solid transparent;
+    border-bottom: 150px solid #1F4D24;
+  }
+  .city-skyline .walker { position: absolute; bottom: 0; left: 40px; }
+  .clock {
+    position: absolute; top: 0; right: 40px;
+    background: rgba(38, 32, 20, 0.9); color: var(--title);
+    padding: 8px 18px; border-radius: 12px;
+    font-size: 24px; font-weight: 700;
+    border: 3px solid var(--btn-border);
+  }
+
+  /* ══════════════════════════════════════════════════════
+     ИГРА
+     ══════════════════════════════════════════════════════ */
+  #hud {
+    position: absolute; top: 30px; left: 30px; right: 30px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; z-index: 30; color: var(--title);
+    font-size: 20px; font-weight: 700;
+  }
+  #hud .pill {
+    background: rgba(38, 32, 20, 0.85);
+    padding: 10px 20px; border-radius: 22px;
+    border: 2px solid rgba(240, 224, 176, 0.4);
+    white-space: nowrap;
+  }
+  #back-btn {
+    background: transparent;
+    border: 2px solid rgba(240, 224, 176, 0.4);
+    color: rgba(240, 224, 176, 0.85);
+    font-family: inherit; font-size: 17px; font-weight: 700;
+    padding: 10px 20px; border-radius: 22px; cursor: pointer;
+  }
+  #back-btn:hover { background: rgba(240, 224, 176, 0.1); }
+  #timer { min-width: 130px; text-align: center; font-size: 26px; }
+  #timer.low { color: #FF6B5A; animation: hintPulse 0.6s ease-in-out infinite; }
+
+  #timebar {
+    position: absolute; top: 100px; left: 30px; right: 30px;
+    height: 12px; border-radius: 6px;
+    background: rgba(0,0,0,0.4); z-index: 30; overflow: hidden;
+  }
+  #timebar i {
+    display: block; height: 100%; width: 100%;
+    background: linear-gradient(90deg, #FFB347, #C06628);
+    transform-origin: left center;
+  }
+
+  #field {
+    position: absolute;
+    top: 130px; left: 0; width: 720px; height: 1100px;
+    z-index: 10; overflow: hidden;
+  }
+
+  /* ── Животные ─────────────────────────────────────── */
+  .animal {
+    position: absolute;
+    left: 0; top: 0;
+    width: 68px; height: 68px;
+    cursor: pointer;
+    will-change: transform;
+    --body: #9C7A58; --face: #D4B896; --ear: #7A5E40; --eye: #2C2418;
+  }
+  .animal .inner { position: absolute; inset: 0; transition: opacity 0.25s ease; }
+  .animal .a-body {
+    position: absolute; left: 6px; right: 6px; top: 14px; bottom: 0;
+    background: var(--body);
+    border-radius: 50% 50% 40% 40% / 55% 55% 45% 45%;
+    box-shadow: inset -5px -8px 0 rgba(0,0,0,0.12);
+  }
+  .animal .a-ear {
+    position: absolute; top: 2px; width: 20px; height: 22px;
+    background: var(--body);
+    border-radius: 50% 50% 20% 20%;
+  }
+  .animal .a-ear::after {
+    content: ''; position: absolute; left: 5px; top: 7px;
+    width: 10px; height: 12px; background: var(--ear);
+    border-radius: 50% 50% 20% 20%;
+  }
+  .animal .a-ear.l { left: 9px;  transform: rotate(-14deg); }
+  .animal .a-ear.r { right: 9px; transform: rotate(14deg); }
+  .animal .a-face {
+    position: absolute; left: 11px; right: 11px; top: 24px; height: 32px;
+    background: var(--face); border-radius: 50%;
+  }
+  .animal .a-eye {
+    position: absolute; top: 11px; width: 6px; height: 7px;
+    background: var(--eye); border-radius: 50%;
+  }
+  .animal .a-eye.l { left: 9px; }
+  .animal .a-eye.r { right: 9px; }
+  .animal .a-nose {
+    position: absolute; left: 50%; bottom: 6px; margin-left: -3px;
+    width: 7px; height: 5px; background: var(--eye); border-radius: 50%;
+  }
+
+  /* Круглые уши (кошка, медведь, белка) */
+  .animal.round-ears .a-ear { border-radius: 50%; height: 20px; }
+  .animal.round-ears .a-ear::after { border-radius: 50%; top: 5px; height: 10px; }
+
+  /* Хвост (белка / лиса) */
+  .animal .a-tail {
+    position: absolute; right: -14px; bottom: 6px;
+    width: 26px; height: 40px;
+    background: var(--body);
+    border-radius: 60% 40% 60% 40%;
+    transform: rotate(25deg);
+    box-shadow: inset -4px -4px 0 rgba(0,0,0,0.12);
+  }
+  .animal.squirrel .a-tail { width: 30px; height: 46px; right: -18px; }
+  .animal.cat .a-tail { width: 12px; height: 34px; right: -6px; border-radius: 6px; }
+  .animal .a-tail.tip::after {
+    content: ''; position: absolute; left: 0; top: 0;
+    width: 100%; height: 40%; background: #fff;
+    border-radius: 60% 40% 40% 40%;
+  }
+
+  /* Платье Лисы */
+  .animal .a-dress {
+    position: absolute; left: 4px; right: 4px; bottom: -2px; height: 26px;
+    background: #D62E2E;
+    border-radius: 8px 8px 12px 12px;
+    box-shadow: inset 0 -5px 0 rgba(0,0,0,0.18);
+  }
+  .animal.fox { width: 76px; height: 76px; z-index: 5; }
+  .animal.fox .a-ear { border-radius: 0; width: 0; height: 0; background: none;
+    border-left: 10px solid transparent; border-right: 10px solid transparent;
+    border-bottom: 24px solid var(--body); }
+  .animal.fox .a-ear::after { display: none; }
+  /* Лиса как в интро: светлая мордочка, блики в глазах, румянец */
+  .animal.fox .a-eye { width: 7px; height: 7px; }
+  .animal.fox .a-eye::after {
+    content: ''; position: absolute; top: 1px; left: 2px;
+    width: 3px; height: 3px; background: #fff; border-radius: 50%;
+  }
+  .animal .a-cheek {
+    position: absolute; bottom: 5px; width: 9px; height: 5px;
+    background: rgba(255, 120, 120, 0.45); border-radius: 50%;
+  }
+  .animal .a-cheek.l { left: 3px; }
+  .animal .a-cheek.r { right: 3px; }
+
+  .animal.hidden-fox { pointer-events: none; }
+  .animal.hidden-fox .inner { opacity: 0; }
+  .animal.appear .inner { animation: popIn 0.3s ease-out; }
+
+  /* Раздача оплеух: обиженное животное */
+  @keyframes offended {
+    0%, 100% { filter: none; }
+    30%      { filter: brightness(1.5) saturate(0.4); }
+  }
+  .animal.offended .inner { animation: offended 0.5s ease; }
+  .animal.offended .a-eye { height: 2px; margin-top: 3px; }
+
+  /* Подсвеченная Лиса при подсказке */
+  .animal.glow .inner { filter: drop-shadow(0 0 10px #FFE066) drop-shadow(0 0 20px #FFB347); }
+
+  .float-text {
+    position: absolute; z-index: 40;
+    color: #FF6B5A; font-size: 30px; font-weight: 900;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.6);
+    pointer-events: none;
+    animation: floatUp 0.9s ease-out forwards;
+  }
+  @keyframes floatUp {
+    from { opacity: 1; transform: translate(-50%, 0); }
+    to   { opacity: 0; transform: translate(-50%, -70px); }
+  }
+  @keyframes screenShake {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-6px, 3px); }
+    50% { transform: translate(5px, -3px); }
+    75% { transform: translate(-3px, 2px); }
+  }
+  #field.shake { animation: screenShake 0.25s linear; }
+  #field.flash::after {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(255, 220, 120, 0.5);
+    animation: fadeOut 0.5s ease-out forwards; pointer-events: none;
+  }
+  @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+  /* ── Оверлеи ──────────────────────────────────────── */
+  .overlay {
+    position: absolute; inset: 0;
+    display: none; align-items: center; justify-content: center;
+    z-index: 80;
+    background: radial-gradient(circle at 50% 50%,
+      rgba(40, 28, 16, 0.75) 0%, rgba(0, 0, 0, 0.88) 75%);
+  }
+  .overlay.open { display: flex; }
+  .overlay .box {
+    text-align: center; color: var(--title);
+    animation: popIn 0.3s ease-out;
+    padding: 20px; max-width: 600px;
+  }
+  .overlay .tag {
+    display: inline-block; margin-bottom: 14px;
+    padding: 6px 18px; border-radius: 20px;
+    background: var(--btn-normal); color: var(--btn-text);
+    font-size: 18px; font-weight: 700; letter-spacing: 1px;
+  }
+  .overlay h2 {
+    font-size: 54px; font-weight: 900; margin: 0 0 16px;
+    text-shadow: 4px 4px 0 var(--title-shadow); line-height: 1.1;
+  }
+  .overlay p {
+    font-size: 22px; color: var(--subtitle);
+    margin: 0 0 24px; font-style: italic; line-height: 1.5;
+  }
+  .overlay .hintline {
+    font-style: normal; font-weight: 700; color: #FFE066;
+    background: rgba(255, 224, 102, 0.12);
+    border: 2px dashed rgba(255, 224, 102, 0.5);
+    border-radius: 14px; padding: 12px 18px;
+  }
+  .overlay .btn { margin: 6px; }
+</style>
+</head>
+<body>
+<div id="game" class="scene">
+  <div class="bg-city">
+    <div class="roof" style="left:20px;  width:150px; height:60px"></div>
+    <div class="roof" style="left:260px; width:200px; height:90px"></div>
+    <div class="roof" style="left:560px; width:140px; height:70px"></div>
+    <div class="cobbles"></div>
+    <div class="stall" style="left:0;   width:240px"></div>
+    <div class="stall" style="left:480px; width:240px"></div>
+  </div>
+  <canvas id="particles" class="particles"></canvas>
+  <div class="vignette"></div>
+
+  <!-- ═══════ ИГРА ═══════ -->
+  <div id="hud">
+    <button id="back-btn">← Главы</button>
+    <div class="pill" id="timer">20.0</div>
+    <div class="pill">Раунд <span id="round-num">1</span>/3</div>
+  </div>
+  <div id="timebar"><i id="timebar-fill"></i></div>
+  <div id="field"></div>
+
+  <!-- ═══════ КАТ-СЦЕНА ═══════ -->
+  <div id="intro">
+    <div id="dots"></div>
+    <button id="skip-btn">Пропустить →</button>
+
+    <div id="panels">
+      <div class="comic-panel active">
+        <div class="art floaty">
+          <div class="city-skyline">
+            <div class="tree" style="left:0"></div>
+            <div class="tree" style="left:70px; transform:scale(0.8)"></div>
+            <div class="b" style="left:300px; width:90px;  height:170px"></div>
+            <div class="b" style="left:400px; width:110px; height:250px"></div>
+            <div class="b" style="left:520px; width:90px;  height:150px"></div>
+            <div class="w" style="left:330px; bottom:110px"></div>
+            <div class="w" style="left:430px; bottom:170px"></div>
+            <div class="w" style="left:470px; bottom:100px"></div>
+            <div class="w" style="left:545px; bottom:80px"></div>
+            <div class="clock">⏰ 14:30</div>
+            <div class="walker"><div data-danich="open" data-size="small"></div></div>
+          </div>
+        </div>
+        <div class="caption">
+          «Ого! Цивилизация! Лесу — всё по-честному, а тут...»
+        </div>
+      </div>
+
+      <div class="comic-panel">
+        <div class="art">
+          <div class="scene-row">
+            <div data-danich="worried" data-size="small"></div>
+            <div class="mini-crowd" id="mini-crowd"></div>
+          </div>
+        </div>
+        <div class="caption">
+          <b>Данич:</b> «А где она, эта самая Лиса? В толпе? Это же как найти
+          иголку в стоге сена — только сено — антропоморфное!»
+        </div>
+      </div>
+
+      <div class="comic-panel">
+        <div class="art">
+          <div class="scene-row">
+            <div data-danich="open" data-size="small"></div>
+            <div class="mini-crowd" id="mini-crowd2"></div>
+          </div>
+        </div>
+        <div class="caption">
+          «Ищи её, бородач! Иначе...»<br>
+          <small>Тапай по рыжей Лисе с острыми ушками. Промахнёшься — потеряешь 3 секунды.</small>
+        </div>
+      </div>
+    </div>
+    <div id="hint">нажми, чтобы продолжить ▶</div>
+  </div>
+
+  <!-- ═══════ ОВЕРЛЕИ ═══════ -->
+  <div class="overlay" id="ready-overlay">
+    <div class="box">
+      <div class="tag" id="ready-tag">Раунд 1</div>
+      <h2 id="ready-name">Начинающий</h2>
+      <p id="ready-info">—</p>
+      <button class="btn btn-lg" id="ready-go">Начать</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="lose-overlay">
+    <div class="box">
+      <h2>Лиса ускользнула!</h2>
+      <p id="lose-text">Время вышло.</p>
+      <p class="hintline hidden" id="lose-hint">💡 Посмотри на рыжего!</p>
+      <button class="btn btn-lg" id="lose-retry">Ещё раз</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="win-overlay">
+    <div class="box">
+      <h2>Лиса поймана!</h2>
+      <p>Данич схватил Лису за лапу. Она вырвалась, подмигнула и шепнула:<br>
+        «Последнее испытание, бородач! Жду в кафе».</p>
+      <button class="btn btn-lg" id="win-next">В кафе →</button>
+    </div>
+  </div>
+
+  <div class="fade" id="fade"></div>
+</div>
+
+<script src="shared/settings.js"></script>
+<script src="shared/particles.js"></script>
+<script src="shared/progress.js"></script>
+<script src="shared/danich.js"></script>
+<script src="shared/sfx.js"></script>
+<script src="shared/music.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const gameEl  = document.getElementById('game');
+  const fadeEl  = document.getElementById('fade');
+  const fieldEl = document.getElementById('field');
+
+  FTSettings.fitScene(gameEl);
+  FTParticles.attach(document.getElementById('particles'), {
+    color: [255, 200, 120], count: 15
+  }).start();
+  FTDanich.renderAll();
+
+  // ══════════════════════════════════════════════════════
+  // ДАННЫЕ (зеркало config/rounds.json — fetch не работает на file://)
+  // ══════════════════════════════════════════════════════
+  const ROUNDS = [
+    { name: 'Начинающий', animalCount: 25, roundTime: 20,
+      foxVisibilityTime: 4,   speedMultiplier: 1.0, falseFoxes: [] },
+    { name: 'Опытный',    animalCount: 45, roundTime: 15,
+      foxVisibilityTime: 1.5, speedMultiplier: 1.5, falseFoxes: [] },
+    { name: 'Мастер',     animalCount: 70, roundTime: 12,
+      foxVisibilityTime: 1.0, speedMultiplier: 2.0, falseFoxes: ['cat', 'squirrel'] }
+  ];
+  const PENALTY = 3;          // сек
+  const FOX_GAP = 1.2;        // пауза между появлениями Лисы, сек
+  const HINT_AFTER = 3;       // провалов подряд до подсказки
+  const BASE_SPEED = 55;      // px/сек
+
+  // Цвета из design/FindTheFox_Chapter2_ArtSpec.md
+  const KINDS = [
+    { body: '#9C7A58', face: '#D4B896', ear: '#7A5E40', eye: '#2C2418' }, // ежиха
+    { body: '#6B8C7A', face: '#9FB3A0', ear: '#5A7260', eye: '#1F2A22', round: 1 }, // бобриха
+    { body: '#8B6F4F', face: '#B89E82', ear: '#6B523D', eye: '#2A1F14' }, // кабаниха
+    { body: '#2C2825', face: '#4A443F', ear: '#3A3530', eye: '#E8D4A0' }, // сова
+    { body: '#5D4E42', face: '#7A6B5F', ear: '#4A3E36', eye: '#1A1A1A', round: 1 }, // медведица
+    { body: '#3A3C35', face: '#8A8C85', ear: '#2A2C26', eye: '#1A1A1A' }, // барсучиха
+    { body: '#E8D4A0', face: '#F4E6C8', ear: '#C8B890', eye: '#1A1A1A' }, // зайчиха
+    { body: '#5A6A7A', face: '#7A8A9A', ear: '#4A5A6A', eye: '#1A1A1A' }, // волчица
+    { body: '#8A7A6A', face: '#B8A898', ear: '#6A5A4A', eye: '#1A1A1A' }, // олениха
+    { body: '#2A2A2A', face: '#3A3A3A', ear: '#1A1A1A', eye: '#FFE066' }, // пантера
+    { body: '#4A7A3C', face: '#6A9A4C', ear: '#3A6A2C', eye: '#1A1A1A', round: 1 }, // лягушка
+    { body: '#5A5A5A', face: '#BDBDBD', ear: '#4A4A4A', eye: '#1A1A1A', round: 1 }, // енот
+    { body: '#9A8A6C', face: '#B8A890', ear: '#7A6A5C', eye: '#1A1A1A', round: 1 }  // хомяк
+  ];
+  const FALSE_KINDS = {
+    cat:      { cls: 'cat round-ears', body: '#D46A28', face: '#E8B47A', ear: '#9A4A18', eye: '#1A1A1A', tail: true },
+    squirrel: { cls: 'squirrel round-ears', body: '#C06020', face: '#E0A060', ear: '#804010', eye: '#1A1A1A', tail: true }
+  };
+  const FOX_KIND = { cls: 'fox', body: '#C06628', face: '#E8B98A', ear: '#7A3A12', eye: '#1A1A1A' };
+
+  // ══════════════════════════════════════════════════════
+  // СПРАЙТЫ
+  // ══════════════════════════════════════════════════════
+  function makeAnimal(kind, extraCls) {
+    const el = document.createElement('div');
+    el.className = 'animal ' + (kind.cls || (kind.round ? 'round-ears' : '')) +
+      (extraCls ? ' ' + extraCls : '');
+    el.style.setProperty('--body', kind.body);
+    el.style.setProperty('--face', kind.face);
+    el.style.setProperty('--ear',  kind.ear);
+    el.style.setProperty('--eye',  kind.eye);
+    const isFox = kind === FOX_KIND;
+    el.innerHTML =
+      '<div class="inner">' +
+        (kind.tail ? '<div class="a-tail"></div>' : '') +
+        '<div class="a-ear l"></div><div class="a-ear r"></div>' +
+        '<div class="a-body"></div>' +
+        '<div class="a-face"><div class="a-eye l"></div><div class="a-eye r"></div>' +
+        (isFox ? '<div class="a-cheek l"></div><div class="a-cheek r"></div>' : '') +
+        '<div class="a-nose"></div></div>' +
+      '</div>';
+    return el;
+  }
+
+  // Мини-толпа в кат-сцене
+  (function fillMini() {
+    const picks = [0, 2, 3, 6, 4, 1, 8, 5, 7, 10, 12, 9];
+    ['mini-crowd', 'mini-crowd2'].forEach(function (id, n) {
+      const box = document.getElementById(id);
+      picks.forEach(function (k, i) {
+        box.appendChild(makeAnimal(KINDS[k % KINDS.length]));
+        if (n === 1 && i === 5) box.appendChild(makeAnimal(FOX_KIND));
+      });
+    });
+  })();
+
+  // ══════════════════════════════════════════════════════
+  // КАТ-СЦЕНА
+  // ══════════════════════════════════════════════════════
+  const introEl = document.getElementById('intro');
+  const panels  = introEl.querySelectorAll('.comic-panel');
+  const dotsEl  = document.getElementById('dots');
+  let current = 0;
+
+  panels.forEach(function () {
+    const d = document.createElement('span');
+    d.className = 'dot';
+    dotsEl.appendChild(d);
+  });
+  const dots = dotsEl.querySelectorAll('.dot');
+
+  function refreshDots() {
+    dots.forEach(function (d, i) {
+      d.classList.toggle('active', i === current);
+      d.classList.toggle('done', i < current);
+    });
+  }
+  function showPanel(i) {
+    panels.forEach(function (p) { p.classList.remove('active'); });
+    current = i;
+    panels[i].classList.add('active');
+    refreshDots();
+  }
+  function nextPanel() {
+    if (current < panels.length - 1) showPanel(current + 1);
+    else endIntro();
+  }
+  function endIntro() {
+    if (introEl.classList.contains('hidden')) return;
+    introEl.classList.add('hidden');
+    startRound(0);
+  }
+
+  introEl.addEventListener('click', function (e) {
+    if (e.target.id === 'skip-btn') return;
+    FTSettings.vibrate(); FTSfx.play('tap');
+    nextPanel();
+  });
+  document.getElementById('skip-btn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    endIntro();
+  });
+  window.addEventListener('keydown', function (e) {
+    if (introEl.classList.contains('hidden')) return;
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') nextPanel();
+    else if (e.key === 'ArrowLeft' && current > 0) showPanel(current - 1);
+    else if (e.key === 'Escape') endIntro();
+  });
+  refreshDots();
+
+  // ══════════════════════════════════════════════════════
+  // ИГРА
+  // ══════════════════════════════════════════════════════
+  const timerEl  = document.getElementById('timer');
+  const barEl    = document.getElementById('timebar-fill');
+  const roundEl  = document.getElementById('round-num');
+  const readyOv  = document.getElementById('ready-overlay');
+  const loseOv   = document.getElementById('lose-overlay');
+  const winOv    = document.getElementById('win-overlay');
+
+  const W = 720, H = 1100;
+  const state = {
+    round: 0, running: false, timeLeft: 0, cfg: null,
+    animals: [], fox: null, foxTimer: 0, foxVisible: false,
+    foxX: 0, foxY: 0, fails: 0, last: 0, raf: 0, hintShown: false
+  };
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  function clearField() {
+    fieldEl.innerHTML = '';
+    state.animals = [];
+    state.fox = null;
+  }
+
+  function addAnimal(kind, size, extraCls) {
+    const el = makeAnimal(kind, extraCls);
+    const a = {
+      el: el, r: size / 2,
+      x: rand(size, W - size), y: rand(size, H - size),
+      vx: 0, vy: 0, isFox: kind === FOX_KIND, speedK: rand(0.6, 1.4)
+    };
+    const ang = rand(0, Math.PI * 2);
+    a.dirX = Math.cos(ang); a.dirY = Math.sin(ang);
+    el.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      onTap(a);
+    });
+    fieldEl.appendChild(el);
+    state.animals.push(a);
+    return a;
+  }
+
+  function setupRound(idx) {
+    const cfg = ROUNDS[idx];
+    state.cfg = cfg;
+    state.round = idx;
+    roundEl.textContent = idx + 1;
+    clearField();
+
+    const falseCount = cfg.falseFoxes.length ? Math.round(cfg.animalCount * 0.15) : 0;
+    const normalCount = cfg.animalCount - 1 - falseCount;
+
+    for (let i = 0; i < normalCount; i++) {
+      addAnimal(KINDS[Math.floor(Math.random() * KINDS.length)], 68);
+    }
+    for (let i = 0; i < falseCount; i++) {
+      const key = cfg.falseFoxes[i % cfg.falseFoxes.length];
+      addAnimal(FALSE_KINDS[key], 68);
+    }
+    // Лиса — последней, чтобы рисовалась поверх
+    state.fox = addAnimal(FOX_KIND, 76);
+    hideFox();
+    timerEl.textContent = cfg.roundTime.toFixed(1);
+    timerEl.classList.remove('low');
+    barEl.style.transform = 'scaleX(1)';
+    placeAll();
+  }
+
+  function placeAll() {
+    state.animals.forEach(function (a) {
+      a.el.style.transform = 'translate(' + (a.x - a.r) + 'px,' + (a.y - a.r) + 'px)';
+    });
+  }
+
+  // ── Лиса: появляется / исчезает ─────────────────────
+  function hideFox() {
+    const f = state.fox;
+    f.el.classList.add('hidden-fox');
+    f.el.classList.remove('appear', 'glow');
+    state.foxVisible = false;
+    state.foxTimer = FOX_GAP + rand(0, 0.6);
+  }
+  function showFox() {
+    const f = state.fox;
+    // Новая позиция, не слишком близко к прошлой
+    let nx, ny, tries = 0;
+    do {
+      nx = rand(f.r + 10, W - f.r - 10);
+      ny = rand(f.r + 10, H - f.r - 10);
+      tries++;
+    } while (tries < 12 && Math.hypot(nx - state.foxX, ny - state.foxY) < 250);
+    f.x = nx; f.y = ny;
+    state.foxX = nx; state.foxY = ny;
+    f.el.classList.remove('hidden-fox');
+    f.el.classList.add('appear');
+    if (state.hintShown) f.el.classList.add('glow');
+    state.foxVisible = true;
+    state.foxTimer = state.cfg.foxVisibilityTime;
+    FTSettings.vibrate(8);
+  }
+
+  // ── Тап ─────────────────────────────────────────────
+  function onTap(a) {
+    if (!state.running) return;
+    if (a.isFox) {
+      if (!state.foxVisible) return;
+      roundWon();
+      return;
+    }
+    // Промах: штраф
+    state.timeLeft -= PENALTY;
+    FTSettings.vibrate(40);
+    FTSfx.play('bad');
+    a.el.classList.remove('offended');
+    void a.el.offsetWidth;
+    a.el.classList.add('offended');
+    floatText('−' + PENALTY + ' сек', a.x, a.y - 40);
+    fieldEl.classList.remove('shake');
+    void fieldEl.offsetWidth;
+    fieldEl.classList.add('shake');
+    // Обиженный отталкивается в случайную сторону
+    const ang = rand(0, Math.PI * 2);
+    a.dirX = Math.cos(ang); a.dirY = Math.sin(ang);
+    updateTimer();
+    if (state.timeLeft <= 0) roundLost();
+  }
+
+  function floatText(text, x, y) {
+    const t = document.createElement('div');
+    t.className = 'float-text';
+    t.textContent = text;
+    t.style.left = x + 'px';
+    t.style.top  = y + 'px';
+    fieldEl.appendChild(t);
+    setTimeout(function () { t.remove(); }, 950);
+  }
+
+  // ── Цикл ────────────────────────────────────────────
+  function updateTimer() {
+    const t = Math.max(0, state.timeLeft);
+    timerEl.textContent = t.toFixed(1);
+    timerEl.classList.toggle('low', t <= 5);
+    barEl.style.transform = 'scaleX(' + (t / state.cfg.roundTime) + ')';
+  }
+
+  function tick(now) {
+    if (!state.running) return;
+    const dt = Math.min(0.05, (now - state.last) / 1000);
+    state.last = now;
+
+    state.timeLeft -= dt;
+    updateTimer();
+    if (state.timeLeft <= 0) { roundLost(); return; }
+
+    // Лиса
+    state.foxTimer -= dt;
+    if (state.foxTimer <= 0) {
+      if (state.foxVisible) hideFox(); else showFox();
+    }
+
+    // Движение
+    const sp = BASE_SPEED * state.cfg.speedMultiplier;
+    const list = state.animals;
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i];
+      a.x += a.dirX * sp * a.speedK * dt;
+      a.y += a.dirY * sp * a.speedK * dt;
+      if (a.x < a.r)     { a.x = a.r;     a.dirX =  Math.abs(a.dirX); }
+      if (a.x > W - a.r) { a.x = W - a.r; a.dirX = -Math.abs(a.dirX); }
+      if (a.y < a.r)     { a.y = a.r;     a.dirY =  Math.abs(a.dirY); }
+      if (a.y > H - a.r) { a.y = H - a.r; a.dirY = -Math.abs(a.dirY); }
+    }
+    // Столкновения (отталкивание кругов)
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i];
+      for (let j = i + 1; j < list.length; j++) {
+        const b = list[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const min = (a.r + b.r) * 0.85;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < min * min && d2 > 0.01) {
+          const d = Math.sqrt(d2);
+          const push = (min - d) / 2;
+          const nx = dx / d, ny = dy / d;
+          a.x -= nx * push; a.y -= ny * push;
+          b.x += nx * push; b.y += ny * push;
+          // Обмен направлениями
+          const tx = a.dirX, ty = a.dirY;
+          a.dirX = b.dirX; a.dirY = b.dirY;
+          b.dirX = tx;     b.dirY = ty;
+        }
+      }
+    }
+    placeAll();
+    state.raf = requestAnimationFrame(tick);
+  }
+
+  function startPlaying() {
+    state.timeLeft = state.cfg.roundTime;
+    state.running = true;
+    state.foxTimer = 0.8;     // первое появление почти сразу
+    state.last = performance.now();
+    state.raf = requestAnimationFrame(tick);
+  }
+
+  function stopPlaying() {
+    state.running = false;
+    cancelAnimationFrame(state.raf);
+  }
+
+  // ── Раунды ──────────────────────────────────────────
+  function startRound(idx) {
+    setupRound(idx);
+    state.hintShown = false;
+    const cfg = ROUNDS[idx];
+    document.getElementById('ready-tag').textContent = 'Раунд ' + (idx + 1) + ' из ' + ROUNDS.length;
+    document.getElementById('ready-name').textContent = cfg.name;
+    let info = cfg.animalCount + ' животных · ' + cfg.roundTime + ' сек';
+    if (cfg.falseFoxes.length) info += '\nОсторожно: рыжие кошки и белки — не Лиса!';
+    document.getElementById('ready-info').innerHTML = info.replace('\n', '<br>');
+    readyOv.classList.add('open');
+  }
+
+  document.getElementById('ready-go').addEventListener('click', function () {
+    FTSettings.vibrate(); FTSfx.play('tap');
+    readyOv.classList.remove('open');
+    startPlaying();
+  });
+
+  function roundWon() {
+    stopPlaying();
+    state.fails = 0;
+    FTSettings.vibrate(60);
+    FTSfx.play('good');
+    fieldEl.classList.add('flash');
+    state.fox.el.classList.add('glow');
+    floatText('Нашёл!', state.fox.x, state.fox.y - 50);
+    setTimeout(function () {
+      fieldEl.classList.remove('flash');
+      if (state.round + 1 < ROUNDS.length) startRound(state.round + 1);
+      else finishChapter();
+    }, 900);
+  }
+
+  function roundLost() {
+    stopPlaying();
+    state.fails++;
+    timerEl.textContent = '0.0';
+    barEl.style.transform = 'scaleX(0)';
+    FTSettings.vibrate(80);
+    FTSfx.play('lose');
+    const hint = document.getElementById('lose-hint');
+    if (state.fails >= HINT_AFTER) {
+      hint.classList.remove('hidden');
+      state.hintShown = true;
+    } else {
+      hint.classList.add('hidden');
+    }
+    document.getElementById('lose-text').textContent =
+      'Время вышло. Неудач подряд: ' + state.fails + '.';
+    loseOv.classList.add('open');
+  }
+
+  document.getElementById('lose-retry').addEventListener('click', function () {
+    FTSettings.vibrate(); FTSfx.play('tap');
+    loseOv.classList.remove('open');
+    const keepHint = state.hintShown;
+    setupRound(state.round);          // перезапуск раунда
+    state.hintShown = keepHint;
+    startPlaying();
+  });
+
+  // ── Финал главы ─────────────────────────────────────
+  function finishChapter() {
+    FTProgress.markDone(1);
+    winOv.classList.add('open');
+    FTSettings.vibrate(80);
+    FTSfx.play('win');
+  }
+
+  function goTo(url) {
+    fadeEl.classList.add('on');
+    setTimeout(function () { window.location.href = url; }, 450);
+  }
+
+  document.getElementById('win-next').addEventListener('click', function () {
+    FTSettings.vibrate(); FTSfx.play('tap');
+    goTo('chapters.html');
+  });
+  document.getElementById('back-btn').addEventListener('click', function () {
+    stopPlaying();
+    goTo('chapters.html');
+  });
+
+  // Пауза, если вкладка скрыта
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && state.running) {
+      stopPlaying();
+      state.last = 0;
+      state.resumeOnShow = true;
+    } else if (!document.hidden && state.resumeOnShow) {
+      state.resumeOnShow = false;
+      state.running = true;
+      state.last = performance.now();
+      state.raf = requestAnimationFrame(tick);
+    }
+  });
+
+  // Фон поля пока идёт кат-сцена: подготовим раунд 1 заранее
+  setupRound(0);
+  FTMusic.play('city');
+
+  fadeEl.classList.add('on');
+  setTimeout(function () { fadeEl.classList.remove('on'); }, 80);
+
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+  document.addEventListener('dblclick',     function (e) { e.preventDefault(); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FindTheFox — Главы</title>
+<link rel="stylesheet" href="shared/style.css">
+<style>
+  /* ── Шапка ────────────────────────────────────────── */
+  #header {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  #header h1 {
+    margin: 0;
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: var(--title);
+    text-shadow: 3px 3px 4px var(--title-shadow);
+  }
+  #back-btn {
+    position: absolute;
+    left: 24px; top: 50%;
+    transform: translateY(-50%);
+    height: 52px;
+    padding: 0 18px;
+    font-family: inherit;
+    font-size: 22px;
+    font-weight: 700;
+    background: transparent;
+    border: 2px solid rgba(240, 224, 176, 0.4);
+    border-radius: 14px;
+    color: rgba(240, 224, 176, 0.85);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  #back-btn:hover { background: rgba(240, 224, 176, 0.1); }
+
+  /* ── Список глав ──────────────────────────────────── */
+  #list {
+    position: absolute;
+    top: 150px; left: 40px; right: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    z-index: 5;
+  }
+  .chapter {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    height: 200px;
+    padding: 0 28px;
+    background: rgba(38, 32, 20, 0.85);
+    border: 4px solid var(--btn-border);
+    border-radius: 24px;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+    color: #fff;
+    cursor: pointer;
+    opacity: 0;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  #game.intro .chapter { animation: fadeInUp 0.45s ease-out forwards; }
+  .chapter:hover  { background: rgba(60, 48, 28, 0.9); }
+  .chapter:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(0,0,0,0.3); }
+
+  .chapter .icon {
+    flex-shrink: 0;
+    width: 136px; height: 136px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+  }
+  .chapter .icon svg { width: 104px; height: 104px; }
+
+  .chapter .info { flex: 1; min-width: 0; }
+  .chapter .num {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--subtitle);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .chapter .name {
+    margin-top: 4px;
+    font-size: 38px;
+    font-weight: 900;
+    color: var(--title);
+  }
+  .chapter .desc {
+    margin-top: 6px;
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .chapter .badge {
+    flex-shrink: 0;
+    width: 56px; height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 900;
+    border-radius: 50%;
+  }
+  .chapter.done .badge     { background: #5E8C3A; color: #fff; }
+  .chapter.unlocked .badge { background: var(--btn-normal); color: var(--btn-text); }
+  .chapter.locked .badge   { background: #444; color: #aaa; }
+
+  .chapter.locked {
+    cursor: default;
+    border-color: #3a3a3a;
+    background: rgba(25, 25, 20, 0.85);
+  }
+  .chapter.locked .icon { filter: grayscale(1) brightness(0.5); }
+  .chapter.locked .name,
+  .chapter.locked .num,
+  .chapter.locked .desc { color: #777; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
+  .chapter.shake { animation: shake 0.35s ease !important; opacity: 1; }
+
+  /* ── Нижняя панель ────────────────────────────────── */
+  #footer {
+    position: absolute;
+    bottom: 40px; left: 0; right: 0;
+    text-align: center;
+    z-index: 10;
+  }
+  #reset-btn {
+    font-family: inherit;
+    font-size: 18px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.35);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* ── Тост ─────────────────────────────────────────── */
+  #toast {
+    position: absolute;
+    left: 50%; bottom: 120px;
+    transform: translateX(-50%) translateY(20px);
+    padding: 14px 28px;
+    background: var(--panel-bg);
+    border-radius: 16px;
+    font-size: 24px;
+    color: var(--title);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 60;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .panel p {
+    margin: 0 0 24px;
+    font-size: 22px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .panel .row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+  }
+  .panel .row .btn { min-width: 150px; }
+</style>
+</head>
+<body>
+<div id="game" class="scene">
+  <div class="bg-forest"></div>
+  <canvas id="particles" class="particles"></canvas>
+  <div class="vignette"></div>
+
+  <div id="header">
+    <button id="back-btn">← Меню</button>
+    <h1>Главы</h1>
+  </div>
+
+  <div id="list"></div>
+
+  <div id="footer">
+    <button id="reset-btn">Сбросить прогресс</button>
+  </div>
+
+  <div id="toast"></div>
+
+  <div class="blocker" id="blocker"></div>
+
+  <div class="panel" id="panel">
+    <h2>Сбросить?</h2>
+    <p>Весь прогресс по главам будет потерян.</p>
+    <div class="row">
+      <button class="btn btn-sm" id="reset-yes">Да</button>
+      <button class="btn btn-sm" id="reset-no">Нет</button>
+    </div>
+  </div>
+
+  <div class="fade on" id="fade"></div>
+</div>
+
+<script src="shared/settings.js"></script>
+<script src="shared/particles.js"></script>
+<script src="shared/progress.js"></script>
+<script src="shared/sfx.js"></script>
+<script src="shared/music.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const gameEl  = document.getElementById('game');
+  const fadeEl  = document.getElementById('fade');
+  const listEl  = document.getElementById('list');
+  const toastEl = document.getElementById('toast');
+  const panel   = document.getElementById('panel');
+  const blocker = document.getElementById('blocker');
+
+  // ── Скейл сцены ──────────────────────────────────────
+  FTSettings.fitScene(gameEl);
+
+  // ── Частицы ──────────────────────────────────────────
+  FTParticles.attach(document.getElementById('particles')).start();
+
+  // ── Данные глав ──────────────────────────────────────
+  // Индексы совпадают с FTProgress (0..3).
+  // url      — первый заход (с кат-сценой),
+  // replay   — повторное прохождение уже пройденной главы,
+  // url: null — глава ещё не сделана.
+  const CHAPTERS = [
+    { num: 'Глава 1', name: 'Лес',    desc: 'Мини-игра «Тиндер»',
+      url: 'scene_intro.html', replay: 'game1_tinder.html' },
+    { num: 'Глава 2', name: 'Город',  desc: 'Мини-игра «Толпа»',
+      url: 'game2_tolpa.html', replay: 'game2_tolpa.html' },
+    { num: 'Глава 3', name: 'Кафе',   desc: 'Мини-игра «Свидание»',
+      url: 'game3_date.html', replay: 'game3_date.html' },
+    { num: 'Финал',   name: 'Вместе', desc: 'Данич и Лиса',
+      url: 'game3_date.html#finale', replay: 'game3_date.html#finale' },
+  ];
+
+  function iconFor(i) {
+    let iconInner = '';
+    if (i === 0) {
+      // Карточка анкеты с сердечком
+      iconInner = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="22" y="8" width="56" height="84" rx="10" fill="#F0E0B0" stroke="#80400D" stroke-width="4"/><circle cx="50" cy="38" r="16" fill="#C06628"/><rect x="32" y="62" width="36" height="6" rx="3" fill="#80400D" opacity="0.5"/><rect x="38" y="74" width="24" height="6" rx="3" fill="#80400D" opacity="0.35"/><path d="M 78 92 C 60 82, 60 66, 70 64 C 75 63, 78 68, 78 70 C 78 68, 81 63, 86 64 C 96 66, 96 82, 78 92 Z" fill="#FF5C97" stroke="#fff" stroke-width="3"/></svg>';
+    } else if (i === 1) {
+      // Городские дома
+      iconInner = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="40" width="26" height="52" fill="#8C6A4F" stroke="#3D322B" stroke-width="4"/><rect x="36" y="18" width="30" height="74" fill="#A67C52" stroke="#3D322B" stroke-width="4"/><rect x="66" y="48" width="24" height="44" fill="#7A5A42" stroke="#3D322B" stroke-width="4"/><g fill="#FFD966"><rect x="17" y="50" width="6" height="8"/><rect x="17" y="66" width="6" height="8"/><rect x="43" y="28" width="6" height="8"/><rect x="53" y="28" width="6" height="8"/><rect x="43" y="46" width="6" height="8"/><rect x="53" y="46" width="6" height="8"/><rect x="43" y="64" width="6" height="8"/><rect x="73" y="58" width="10" height="8"/></g></svg>';
+    } else if (i === 2) {
+      // Чашка кофе с сердечком
+      iconInner = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M 18 44 H 70 V 68 C 70 82, 60 90, 44 90 C 28 90, 18 82, 18 68 Z" fill="#F0E0B0" stroke="#80400D" stroke-width="4" stroke-linejoin="round"/><path d="M 70 50 C 86 50, 86 72, 68 72" fill="none" stroke="#80400D" stroke-width="4"/><path d="M 44 78 C 30 70, 30 58, 37 56 C 41 55, 44 59, 44 61 C 44 59, 47 55, 51 56 C 58 58, 58 70, 44 78 Z" fill="#FF5C97"/><path d="M 32 36 C 28 28, 36 24, 32 14 M 46 36 C 42 28, 50 24, 46 14 M 60 36 C 56 28, 64 24, 60 14" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="3" stroke-linecap="round"/></svg>';
+    } else if (i === 3) {
+      iconInner = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="heartGradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FFA6C9;stop-opacity:1" /><stop offset="100%" style="stop-color:#FF5C97;stop-opacity:1" /></linearGradient></defs><path d="M 50 85 C 5 65, -5 25, 20 10 C 35 0, 48 18, 50 28 C 52 18, 65 0, 80 10 C 105 25, 95 65, 50 85 Z" fill="url(#heartGradient)" stroke="#FF4081" stroke-width="3" stroke-linejoin="round"/></svg>';
+    }
+    return iconInner;
+  }
+
+  const BADGE = { done: '✓', unlocked: '▶', locked: '🔒' };
+
+  // ── Рендер списка ────────────────────────────────────
+  function render() {
+    const progress = FTProgress.load();
+    listEl.innerHTML = '';
+
+    CHAPTERS.forEach(function (ch, i) {
+      const status = progress[i] || 'locked';
+      const el = document.createElement('div');
+      el.className = 'chapter ' + status;
+      el.style.animationDelay = (i * 0.08) + 's';
+      el.innerHTML =
+        '<div class="icon">' + iconFor(i) + '</div>' +
+        '<div class="info">' +
+          '<div class="num">' + ch.num + '</div>' +
+          '<div class="name">' + ch.name + '</div>' +
+          '<div class="desc">' + ch.desc + '</div>' +
+        '</div>' +
+        '<div class="badge">' + BADGE[status] + '</div>';
+
+      el.addEventListener('click', function () { openChapter(i, el); });
+      listEl.appendChild(el);
+    });
+  }
+
+  function openChapter(i, el) {
+    const ch = CHAPTERS[i];
+    const status = FTProgress.getStatus(i);
+
+    if (status === 'locked') {
+      FTSettings.vibrate(30);
+      el.classList.remove('shake');
+      void el.offsetWidth;          // перезапуск анимации
+      el.classList.add('shake');
+      toast('Сначала пройди прошлую главу');
+      return;
+    }
+
+    const url = (status === 'done') ? ch.replay : ch.url;
+    if (!url) {
+      FTSettings.vibrate(); FTSfx.play('tap');
+      toast('Скоро! Глава в разработке');
+      return;
+    }
+
+    FTSettings.vibrate(); FTSfx.play('tap');
+    navigate(url);
+  }
+
+  // ── Тост ─────────────────────────────────────────────
+  let toastTimer = 0;
+  function toast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      toastEl.classList.remove('show');
+    }, 1600);
+  }
+
+  // ── Переходы ─────────────────────────────────────────
+  let isTransitioning = false;
+  function navigate(url) {
+    if (isTransitioning) return;
+    isTransitioning = true;
+    fadeEl.classList.add('on');
+    setTimeout(function () {
+      window.location.href = url;
+    }, 450);
+  }
+
+  document.getElementById('back-btn').addEventListener('click', function () {
+    FTSettings.vibrate(); FTSfx.play('tap');
+    navigate('index.html');
+  });
+
+  // ── Сброс прогресса ──────────────────────────────────
+  function openReset() {
+    FTSettings.vibrate(); FTSfx.play('tap');
+    panel.classList.add('open');
+    blocker.classList.add('open');
+  }
+  function closeReset() {
+    panel.classList.remove('open');
+    blocker.classList.remove('open');
+  }
+  document.getElementById('reset-btn').addEventListener('click', openReset);
+  document.getElementById('reset-no').addEventListener('click', function () {
+    FTSettings.vibrate(); FTSfx.play('tap');
+    closeReset();
+  });
+  blocker.addEventListener('click', closeReset);
+  document.getElementById('reset-yes').addEventListener('click', function () {
+    FTSettings.vibrate(30);
+    FTProgress.reset();
+    closeReset();
+    toast('Прогресс сброшен');
+  });
+
+  document.addEventListener('ft-progress-changed', function () {
+    render();
+    gameEl.classList.add('intro');
+  });
+
+  // ── Android back: закрыть панель или в меню ──────────
+  history.pushState({ chapters: true }, '');
+  window.addEventListener('popstate', function () {
+    if (panel.classList.contains('open')) {
+      closeReset();
+      history.pushState({ chapters: true }, '');
+    } else {
+      navigate('index.html');
+    }
+  });
+
+  // При возврате кнопкой «назад» браузера страница может
+  // восстановиться из bfcache — обновим список и снимем затемнение.
+  window.addEventListener('pageshow', function (e) {
+    if (!e.persisted) return;
+    isTransitioning = false;
+    render();
+    fadeEl.classList.remove('on');
+  });
+
+  // ── Старт ────────────────────────────────────────────
+  FTMusic.play('forest');
+  render();
+  requestAnimationFrame(function () {
+    fadeEl.classList.remove('on');
+    gameEl.classList.add('intro');
+  });
+
+  // ── Мелкая защита ────────────────────────────────────
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('dblclick',     e => e.preventDefault());
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FindTheFox — Глава 3: Кафе</title>
+<link rel="stylesheet" href="shared/style.css">
+<style>
+  /* ══════════════════════════════════════════════════════
+     ФОН КАФЕ
+     ══════════════════════════════════════════════════════ */
+  .bg-cafe {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #5A3A26 0%, #46301F 50%, #2E1F14 100%);
+  }
+  .bg-cafe .wall {
+    position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(90deg,
+      rgba(255,255,255,0.03) 0 2px, transparent 2px 60px);
+  }
+  .bg-cafe .window {
+    position: absolute; top: 190px; width: 150px; height: 190px;
+    background: linear-gradient(180deg, #FFB347 0%, #C06628 100%);
+    border: 8px solid #2A1F14; border-radius: 80px 80px 8px 8px;
+    box-shadow: inset 0 0 40px rgba(255,220,120,0.5), 0 0 40px rgba(255,179,71,0.25);
+    opacity: 0.8;
+  }
+  .bg-cafe .window::after {
+    content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+    width: 6px; margin-left: -3px; background: #2A1F14;
+  }
+  .bg-cafe .lamp {
+    position: absolute; top: 0; width: 4px; height: 90px; background: #2A1F14;
+  }
+  .bg-cafe .lamp::after {
+    content: ''; position: absolute; left: -26px; bottom: -22px;
+    width: 56px; height: 34px; background: #F0D080;
+    border-radius: 50% 50% 6px 6px;
+    box-shadow: 0 0 40px 14px rgba(255, 210, 110, 0.35);
+  }
+  .bg-cafe .floor {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 40%;
+    background: repeating-linear-gradient(90deg,
+      rgba(0,0,0,0.12) 0 80px, rgba(0,0,0,0) 80px 160px);
+  }
+
+  /* ══════════════════════════════════════════════════════
+     КОМИКС-СЦЕНЫ (вступление и финал)
+     ══════════════════════════════════════════════════════ */
+  .story {
+    position: absolute; inset: 0; z-index: 60;
+    background: linear-gradient(180deg, #5A3A26 0%, #46301F 50%, #2E1F14 100%);
+  }
+  .story.hidden { display: none; }
+
+  .comic-panel { display: none; position: absolute; inset: 0; }
+  .comic-panel.active { display: block; animation: fadeIn 0.28s ease-out; }
+
+  .art {
+    position: absolute;
+    top: 80px; right: 0; bottom: 280px; left: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .caption {
+    position: absolute;
+    bottom: 100px; left: 60px; right: 60px;
+    background: rgba(240, 224, 176, 0.96);
+    color: #2a1f14;
+    padding: 22px 26px;
+    border: 4px solid #4D2618;
+    border-radius: 10px;
+    font-size: 20px;
+    line-height: 1.45;
+    text-align: center;
+    font-style: italic;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45), inset 0 0 40px rgba(255,255,255,0.25);
+    transform: rotate(-0.8deg);
+  }
+  .caption b { font-style: normal; color: #8C2A1A; }
+
+  .dots {
+    position: absolute; top: 40px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 30;
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(240, 224, 176, 0.3);
+    transition: background 0.3s ease, transform 0.3s ease;
+  }
+  .dot.active { background: var(--title); transform: scale(1.4); }
+  .dot.done   { background: rgba(240, 224, 176, 0.6); }
+
+  .skip-btn {
+    position: absolute; top: 30px; right: 30px;
+    background: transparent;
+    border: 2px solid rgba(240, 224, 176, 0.4);
+    color: rgba(240, 224, 176, 0.75);
+    font-family: inherit; font-size: 15px;
+    padding: 8px 16px; border-radius: 20px;
+    cursor: pointer; z-index: 30;
+  }
+  .skip-btn:hover { background: rgba(240, 224, 176, 0.1); }
+
+  .hint {
+    position: absolute; bottom: 65px; right: 70px;
+    color: rgba(240, 224, 176, 0.75);
+    font-size: 16px; font-weight: 600;
+    z-index: 15; pointer-events: none;
+    animation: hintPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes hintPulse {
+    0%, 100% { opacity: 0.4; transform: translateX(0); }
+    50%      { opacity: 1;   transform: translateX(6px); }
+  }
+
+  .char-svg {
+    display: block; width: 200px; height: 310px;
+    filter: drop-shadow(0 12px 14px rgba(0,0,0,0.35));
+  }
+  .char-svg.fox-svg { width: 260px; height: 260px; }
+  .char-svg.big { width: 260px; height: 400px; }
+  @keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-12px); }
+  }
+  .floaty .char-svg { animation: floatY 3.2s ease-in-out infinite; }
+  .scene-row { display: flex; align-items: flex-end; justify-content: center; gap: 24px; }
+
+  /* Кафе снаружи */
+  .cafe-front { position: relative; width: 600px; height: 440px; }
+  .cafe-front .house {
+    position: absolute; left: 150px; bottom: 0; width: 400px; height: 330px;
+    background: #7A4E30; border: 6px solid #2A1F14; border-radius: 10px 10px 0 0;
+  }
+  .cafe-front .awning {
+    position: absolute; left: 130px; bottom: 270px; width: 440px; height: 70px;
+    background: repeating-linear-gradient(90deg, #C0392B 0 40px, #F0E0B0 40px 80px);
+    border: 6px solid #2A1F14; border-radius: 12px 12px 0 0;
+  }
+  .cafe-front .door {
+    position: absolute; left: 310px; bottom: 0; width: 90px; height: 170px;
+    background: #3A2418; border: 6px solid #2A1F14; border-radius: 45px 45px 0 0;
+  }
+  .cafe-front .sign {
+    position: absolute; left: 190px; bottom: 180px; width: 320px;
+    padding: 8px 0; text-align: center; background: #F0E0B0;
+    color: #4D2618; font-weight: 900; font-size: 24px;
+    border: 4px solid #2A1F14; border-radius: 8px;
+  }
+  .cafe-front .walker { position: absolute; left: 0; bottom: 0; }
+
+  /* Закат (финал) */
+  .sunset {
+    position: relative; width: 620px; height: 460px; border-radius: 16px; overflow: hidden;
+    background: linear-gradient(180deg, #FF8C5A 0%, #FFB347 55%, #7A4E30 55%, #3A2418 100%);
+    border: 6px solid #2A1F14;
+  }
+  .sunset .sun {
+    position: absolute; left: 50%; top: 150px; width: 160px; height: 160px; margin-left: -80px;
+    background: #FFE066; border-radius: 50%; box-shadow: 0 0 60px 20px rgba(255,224,102,0.6);
+  }
+  .sunset .road {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 45%;
+    background: linear-gradient(180deg, #5A3A26, #2A1F14);
+  }
+  .sunset .pair { position: absolute; left: 0; right: 0; bottom: 16px; display: flex; justify-content: center; gap: 0; }
+  .sunset .pair .char-svg { width: 130px; height: 200px; }
+  .sunset .pair .char-svg.fox-svg { width: 150px; height: 150px; }
+
+  /* ══════════════════════════════════════════════════════
+     ИГРА
+     ══════════════════════════════════════════════════════ */
+  #hud {
+    position: absolute; top: 30px; left: 30px; right: 30px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; z-index: 30; color: var(--title);
+    font-size: 20px; font-weight: 700;
+  }
+  #hud .pill {
+    background: rgba(38, 32, 20, 0.85);
+    padding: 10px 20px; border-radius: 22px;
+    border: 2px solid rgba(240, 224, 176, 0.4);
+    white-space: nowrap;
+  }
+  #back-btn {
+    background: transparent;
+    border: 2px solid rgba(240, 224, 176, 0.4);
+    color: rgba(240, 224, 176, 0.85);
+    font-family: inherit; font-size: 17px; font-weight: 700;
+    padding: 10px 20px; border-radius: 22px; cursor: pointer;
+  }
+  #back-btn:hover { background: rgba(240, 224, 176, 0.1); }
+
+  #sym {
+    position: absolute; top: 96px; left: 30px; right: 30px;
+    z-index: 30; display: flex; align-items: center; gap: 14px;
+  }
+  #sym .heart { font-size: 40px; line-height: 1; }
+  #sym .track {
+    position: relative; flex: 1; height: 30px; border-radius: 15px;
+    background: rgba(0,0,0,0.45); border: 3px solid rgba(240, 224, 176, 0.4);
+    overflow: hidden;
+  }
+  #sym .fill {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 30%;
+    background: linear-gradient(90deg, #FF8FB5, #FF4081);
+    transition: width 0.6s ease;
+  }
+  #sym .val {
+    min-width: 64px; text-align: right;
+    font-size: 26px; font-weight: 900; color: var(--title);
+  }
+  #sym.bump .heart { animation: popIn 0.35s ease-out; }
+
+  #stage {
+    position: absolute; top: 160px; left: 0; width: 720px; height: 520px;
+    z-index: 10;
+  }
+  #stage .char { position: absolute; top: 30px; }
+  #stage #danich-slot { left: 60px; }
+  #stage #fox-slot    { right: 60px; }
+  #stage .char .char-svg { width: 240px; height: 372px; transition: transform 0.25s ease; }
+  #stage .char .char-svg.fox-svg { width: 300px; height: 300px; margin-top: 20px; }
+  #stage .char.react .char-svg { animation: popIn 0.3s ease-out; }
+  #stage .table {
+    position: absolute; left: 90px; right: 90px; top: 330px; height: 190px;
+    z-index: 3;
+  }
+  #stage .table .top {
+    position: absolute; left: 0; right: 0; top: 0; height: 38px;
+    background: #A0643A; border: 5px solid #2A1F14; border-radius: 12px;
+    box-shadow: 0 8px 0 rgba(0,0,0,0.3);
+  }
+  #stage .table .leg {
+    position: absolute; top: 38px; width: 26px; height: 150px; background: #6E4326;
+    border: 4px solid #2A1F14; border-top: none;
+  }
+  #stage .table .leg.l { left: 30px; }
+  #stage .table .leg.r { right: 30px; }
+  #stage .table .cloth {
+    position: absolute; left: 20px; right: 20px; top: 38px; height: 70px;
+    background: repeating-linear-gradient(90deg, #C0392B 0 30px, #F0E0B0 30px 60px);
+    clip-path: polygon(0 0, 100% 0, 96% 100%, 4% 100%);
+    opacity: 0.9;
+  }
+  #plate {
+    position: absolute; left: 50%; top: -48px; margin-left: -50px;
+    width: 100px; height: 70px; z-index: 4;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 54px; line-height: 1;
+    filter: drop-shadow(0 6px 4px rgba(0,0,0,0.4));
+  }
+  #plate.serve { animation: popIn 0.35s ease-out; }
+
+  #bubble {
+    position: absolute; top: 690px; left: 40px; right: 40px; min-height: 96px;
+    z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    padding: 14px 24px;
+    background: rgba(240, 224, 176, 0.96); color: #2a1f14;
+    border: 4px solid #4D2618; border-radius: 22px;
+    font-size: 24px; line-height: 1.35; text-align: center; font-style: italic;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+  }
+  #bubble b { font-style: normal; color: #8C2A1A; }
+  #bubble.pop { animation: popIn 0.25s ease-out; }
+
+  .float-text {
+    position: absolute; z-index: 40;
+    font-size: 54px; font-weight: 900;
+    text-shadow: 3px 3px 0 rgba(0,0,0,0.6);
+    pointer-events: none;
+    animation: floatUp 1.1s ease-out forwards;
+  }
+  .float-text.up   { color: #FF8FB5; }
+  .float-text.down { color: #FF6B5A; }
+  @keyframes floatUp {
+    from { opacity: 1; transform: translate(-50%, 0); }
+    to   { opacity: 0; transform: translate(-50%, -90px); }
+  }
+
+  #choices {
+    position: absolute; top: 810px; left: 40px; right: 40px;
+    z-index: 20; display: flex; flex-direction: column; gap: 14px;
+  }
+  #choices .kind {
+    text-align: center; font-size: 20px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--subtitle); margin-bottom: 2px;
+  }
+  .opt {
+    display: flex; align-items: center; gap: 20px;
+    height: 112px; padding: 0 26px;
+    font-family: inherit; font-size: 28px; font-weight: 700; text-align: left;
+    color: var(--btn-text); background: var(--btn-normal);
+    border: 4px solid var(--btn-border); border-radius: 20px;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease, opacity 0.2s ease;
+    animation: fadeInUp 0.35s ease-out both;
+  }
+  .opt:nth-child(3) { animation-delay: 0.07s; }
+  .opt:nth-child(4) { animation-delay: 0.14s; }
+  .opt .ico { font-size: 56px; line-height: 1; width: 70px; text-align: center; }
+  .opt:hover  { background: var(--btn-hover); }
+  .opt:active { background: var(--btn-pressed); transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
+  #choices.locked .opt { pointer-events: none; opacity: 0.45; }
+  #choices.locked .opt.picked { opacity: 1; background: var(--btn-pressed); }
+
+  /* ── Оверлеи ──────────────────────────────────────── */
+  .overlay {
+    position: absolute; inset: 0;
+    display: none; align-items: center; justify-content: center;
+    z-index: 80;
+    background: radial-gradient(circle at 50% 50%,
+      rgba(40, 28, 16, 0.75) 0%, rgba(0, 0, 0, 0.88) 75%);
+  }
+  .overlay.open { display: flex; }
+  .overlay .box {
+    text-align: center; color: var(--title);
+    animation: popIn 0.3s ease-out;
+    padding: 20px; max-width: 600px;
+  }
+  .overlay .tag {
+    display: inline-block; margin-bottom: 14px;
+    padding: 6px 18px; border-radius: 20px;
+    background: var(--btn-normal); color: var(--btn-text);
+    font-size: 18px; font-weight: 700; letter-spacing: 1px;
+  }
+  .overlay h2 {
+    font-size: 54px; font-weight: 900; margin: 0 0 16px;
+    text-shadow: 4px 4px 0 var(--title-shadow); line-height: 1.1;
+  }
+  .overlay p {
+    font-size: 22px; color: var(--subtitle);
+    margin: 0 0 24px; font-style: italic; line-height: 1.5;
+  }
+  .overlay .btn { margin: 6px; }
+  .overlay .big-heart { font-size: 96px; line-height: 1; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div id="game" class="scene">
+  <div class="bg-cafe">
+    <div class="wall"></div>
+    <div class="window" style="left:50px"></div>
+    <div class="window" style="right:50px"></div>
+    <div class="lamp" style="left:200px"></div>
+    <div class="lamp" style="left:520px"></div>
+    <div class="floor"></div>
+  </div>
+  <canvas id="particles" class="particles"></canvas>
+  <div class="vignette"></div>
+
+  <!-- ═══════ ИГРА ═══════ -->
+  <div id="hud">
+    <button id="back-btn">← Главы</button>
+    <div class="pill">Ход <span id="turn-num">1</span>/10</div>
+  </div>
+  <div id="sym">
+    <div class="heart">💗</div>
+    <div class="track"><div class="fill" id="sym-fill"></div></div>
+    <div class="val" id="sym-val">30</div>
+  </div>
+
+  <div id="stage">
+    <div class="char" id="danich-slot"></div>
+    <div class="char" id="fox-slot"></div>
+    <div class="table">
+      <div id="plate"></div>
+      <div class="top"></div>
+      <div class="cloth"></div>
+      <div class="leg l"></div><div class="leg r"></div>
+    </div>
+  </div>
+
+  <div id="bubble"></div>
+  <div id="choices"></div>
+
+  <!-- ═══════ ВСТУПЛЕНИЕ ═══════ -->
+  <div class="story" id="intro">
+    <div class="dots"></div>
+    <button class="skip-btn">Пропустить →</button>
+    <div class="panels">
+      <div class="comic-panel active">
+        <div class="art floaty">
+          <div class="cafe-front">
+            <div class="house"></div>
+            <div class="awning"></div>
+            <div class="sign">Кафе «Рыжий хвост»</div>
+            <div class="door"></div>
+            <div class="walker" data-char="danich" data-face="open"></div>
+          </div>
+        </div>
+        <div class="caption">
+          <b>Кабан-вышибала:</b> «Дресс-код! Шапка-носок — допустимо. Сандалии с носками...
+          ладно, проходи. Лиса уже ждёт».
+        </div>
+      </div>
+
+      <div class="comic-panel">
+        <div class="art">
+          <div class="scene-row">
+            <div data-char="danich" data-face="worried"></div>
+            <div data-char="fox" data-face="neutral"></div>
+          </div>
+        </div>
+        <div class="caption">
+          <b>Лиса:</b> «Присаживайся, бородач. Последнее испытание: за ужин ты должен
+          меня... ну, скажем, очаровать. Если сможешь».
+        </div>
+      </div>
+
+      <div class="comic-panel">
+        <div class="art">
+          <div class="scene-row">
+            <div data-char="danich" data-face="open"></div>
+            <div data-char="fox" data-face="happy"></div>
+          </div>
+        </div>
+        <div class="caption">
+          Выбирай блюда и темы для разговора — по очереди. У тебя <b>10 ходов</b>,
+          чтобы довести симпатию Лисы до <b>100</b>.<br>
+          <small>Что Лиса любит — она не скажет. Следи за её реакциями.</small>
+        </div>
+      </div>
+    </div>
+    <div class="hint">нажми, чтобы продолжить ▶</div>
+  </div>
+
+  <!-- ═══════ ФИНАЛ ═══════ -->
+  <div class="story hidden" id="finale">
+    <div class="dots"></div>
+    <div class="panels">
+      <div class="comic-panel active">
+        <div class="art">
+          <div class="scene-row">
+            <div data-char="danich" data-face="happy"></div>
+            <div data-char="fox" data-face="love"></div>
+          </div>
+        </div>
+        <div class="caption">
+          <b>Лиса:</b> «Ладно... Ты не такой уж безнадёжный, бородач».<br>
+          Она кладёт лапу на руку Даничу.
+        </div>
+      </div>
+
+      <div class="comic-panel">
+        <div class="art floaty">
+          <div class="sunset">
+            <div class="sun"></div>
+            <div class="road"></div>
+            <div class="pair">
+              <div data-char="danich" data-face="happy"></div>
+              <div data-char="fox" data-face="love"></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">
+          И они ушли вместе в закат по лесной дороге. Даже сандалии с носками
+          ничего не испортили.
+        </div>
+      </div>
+    </div>
+    <div class="hint">нажми, чтобы продолжить ▶</div>
+  </div>
+
+  <!-- ═══════ ОВЕРЛЕИ ═══════ -->
+  <div class="overlay" id="lose-overlay">
+    <div class="box">
+      <h2>Лиса зевает</h2>
+      <p id="lose-text">Ужин закончился, а симпатии не хватило.</p>
+      <button class="btn btn-lg" id="lose-retry">Свидание заново</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="end-overlay">
+    <div class="box">
+      <div class="big-heart">💖</div>
+      <h2>Конец</h2>
+      <p>Данич нашёл Лису. А Лиса — Данича.<br>Спасибо за игру!</p>
+      <button class="btn btn-lg" id="end-next">К главам</button>
+    </div>
+  </div>
+
+  <div class="fade" id="fade"></div>
+</div>
+
+<script src="shared/settings.js"></script>
+<script src="shared/particles.js"></script>
+<script src="shared/progress.js"></script>
+<script src="shared/danich.js"></script>
+<script src="shared/sfx.js"></script>
+<script src="shared/music.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const gameEl = document.getElementById('game');
+  const fadeEl = document.getElementById('fade');
+
+  FTSettings.fitScene(gameEl);
+  FTParticles.attach(document.getElementById('particles'), {
+    color: [255, 170, 190], count: 14
+  }).start();
+
+  // ══════════════════════════════════════════════════════
+  // ДАННЫЕ
+  // ══════════════════════════════════════════════════════
+  const TURNS      = 10;
+  const START_SYM  = 30;
+  const GOAL_SYM   = 100;
+  const REACT_MS   = 1900;   // пауза на реакцию Лисы
+  const MIN_GOOD   = 5;      // «хороший» вариант в каждом тройном выборе
+
+  // Лиса любит ТОЛЬКО курицу: куриные блюда — плюс, всё остальное — минус.
+  // Игрок этого не знает и должен догадаться по реакциям и подсказкам в темах.
+  const DISHES = [
+    { ico: '🍗', name: 'Жареная курица',      d: 20,  line: 'Вот это ужин! Ты меня понимаешь.' },
+    { ico: '🍖', name: 'Курочка-гриль',       d: 20,  line: 'Дымок, корочка... Мечта!' },
+    { ico: '🍗', name: 'Куриные крылышки',    d: 18,  line: 'Крылышки! Теперь мы поладим.' },
+    { ico: '🥘', name: 'Куриный шашлык',      d: 18,  line: 'О-о-о, да. Ещё порцию.' },
+    { ico: '🍲', name: 'Куриный суп',         d: 15,  line: 'Как у бабушки. Почти разрыдалась.' },
+    { ico: '🥡', name: 'Куриные наггетсы',    d: 15,  line: 'Не изысканно, но курица — это курица.' },
+    { ico: '🍓', name: 'Лесные ягоды',        d: -15, line: 'Ягоды? А где курица?' },
+    { ico: '🐟', name: 'Рыба',                d: -15, line: 'Рыба. Серьёзно? Курицы не нашлось?' },
+    { ico: '🐸', name: 'Суп из лягушек',      d: -20, line: 'Бе-е. Я такое не ем.' },
+    { ico: '🍯', name: 'Мёд',                 d: -15, line: 'Это не ужин, это десерт. И без курицы.' },
+    { ico: '🧀', name: 'Сыр',                 d: -15, line: 'Сыр — для мышей. Мне нужна курица.' },
+    { ico: '🍄', name: 'Грибной суп',         d: -15, line: 'Грибы... А курицы там нет?' }
+  ];
+  const TOPICS = [
+    { ico: '🍽️', name: '«Что любишь поесть?»', d: 8,  line: 'Курица. Всегда курица. Запомни, бородач.' },
+    { ico: '🥩', name: '«Любишь мясо?»',      d: 6,   line: 'Ту, что с крыльями. Но тихо, это секрет.' },
+    { ico: '⭐', name: 'Звёзды',               d: 5,   line: 'Романтик. Не ожидала от бородача.' },
+    { ico: '🏃', name: '«А ты куда убегала?»', d: 5,  line: 'А ты зачем догонял?' },
+    { ico: '👗', name: 'Носки с сандалиями',  d: -8,  line: 'Давай не будем о моде.' },
+    { ico: '☁️', name: 'Погода',               d: -10, line: 'Скучно. Дальше.' },
+    { ico: '📖', name: 'Сказки про хитрую лису', d: -12, line: 'Это стереотипы!' },
+    { ico: '🥦', name: 'Веганство',            d: -15, line: 'Веган?! Я сейчас уйду.' }
+  ];
+
+  // ══════════════════════════════════════════════════════
+  // ПЕРСОНАЖИ (Данич — из shared/danich.js, Лиса — здесь)
+  // ══════════════════════════════════════════════════════
+  // Лиса — как в интро/меню (shared/style.css .fox), viewBox 300×300
+  const FOX_BODY =
+    '<ellipse cx="150" cy="180" rx="100" ry="110" fill="#C06628"/>' +
+    '<path d="M 70 230 Q 100 285 150 290 Q 215 285 245 215 Q 235 262 150 262 Q 95 262 70 230 Z" fill="rgba(0,0,0,0.1)"/>' +
+    '<g transform="rotate(-12 96 81)"><path d="M 96 54 L 126 109 L 66 109 Z" fill="#C06628"/>' +
+      '<path d="M 96 76 L 110 102 L 82 102 Z" fill="#7A3A12"/></g>' +
+    '<g transform="rotate(12 204 81)"><path d="M 204 54 L 234 109 L 174 109 Z" fill="#C06628"/>' +
+      '<path d="M 204 76 L 218 102 L 190 102 Z" fill="#7A3A12"/></g>' +
+    '<ellipse cx="150" cy="165" rx="65" ry="55" fill="#E8B98A"/>' +
+    '<path d="M 90 185 Q 150 225 210 185 Q 205 215 150 220 Q 95 215 90 185 Z" fill="rgba(0,0,0,0.06)"/>' +
+    '<ellipse cx="111" cy="191" rx="10" ry="5" fill="rgba(255,120,120,0.45)"/>' +
+    '<ellipse cx="189" cy="191" rx="10" ry="5" fill="rgba(255,120,120,0.45)"/>' +
+    '<path d="M 142 180 Q 150 177 158 180 Q 158 191 150 191 Q 142 191 142 180 Z" fill="#1A1A1A"/>';
+
+  const FOX_FACES = {
+    neutral:
+      '<circle cx="128" cy="166" r="7" fill="#1A1A1A"/><circle cx="172" cy="166" r="7" fill="#1A1A1A"/>' +
+      '<circle cx="130" cy="164" r="2.5" fill="#fff"/><circle cx="174" cy="164" r="2.5" fill="#fff"/>',
+    happy:
+      '<path d="M 120 170 Q 128 158 136 170" stroke="#1A1A1A" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+      '<path d="M 164 170 Q 172 158 180 170" stroke="#1A1A1A" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+      '<path d="M 138 198 Q 150 210 162 198" stroke="#7A3A12" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+    love:
+      '<path d="M 128 176 C 114 166, 117 154, 124 154 C 127 154, 128 157, 128 158 C 128 157, 129 154, 132 154 C 139 154, 142 166, 128 176 Z" fill="#FF4081"/>' +
+      '<path d="M 172 176 C 158 166, 161 154, 168 154 C 171 154, 172 157, 172 158 C 172 157, 173 154, 176 154 C 183 154, 186 166, 172 176 Z" fill="#FF4081"/>' +
+      '<path d="M 136 197 Q 150 215 164 197 Q 150 203 136 197 Z" fill="#7A3A12"/>',
+    annoyed:
+      '<path d="M 114 150 L 138 158" stroke="#4A2008" stroke-width="4" stroke-linecap="round"/>' +
+      '<path d="M 186 150 L 162 158" stroke="#4A2008" stroke-width="4" stroke-linecap="round"/>' +
+      '<circle cx="128" cy="168" r="7" fill="#1A1A1A"/><circle cx="172" cy="168" r="7" fill="#1A1A1A"/>' +
+      '<path d="M 138 204 Q 150 195 162 204" stroke="#7A3A12" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
+  };
+
+  function foxSVG(face) {
+    return '<svg class="char-svg fox-svg" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">' +
+      FOX_BODY + (FOX_FACES[face] || FOX_FACES.neutral) + '</svg>';
+  }
+  function danichSVG(face) {
+    return FTDanich.svg(face, false).replace('class="danich-svg"', 'class="char-svg"');
+  }
+  function charSVG(who, face) { return who === 'fox' ? foxSVG(face) : danichSVG(face); }
+
+  // Подставить персонажей во все [data-char] (вступление / финал)
+  document.querySelectorAll('[data-char]').forEach(function (el) {
+    el.innerHTML = charSVG(el.dataset.char, el.dataset.face);
+  });
+
+  // ══════════════════════════════════════════════════════
+  // КОМИКС-ПЕРЕЛИСТЫВАТЕЛЬ (вступление и финал)
+  // ══════════════════════════════════════════════════════
+  function makePager(root, onEnd) {
+    const panels = root.querySelectorAll('.comic-panel');
+    const dotsEl = root.querySelector('.dots');
+    let current = 0, ended = false;
+
+    panels.forEach(function () {
+      const d = document.createElement('span');
+      d.className = 'dot';
+      dotsEl.appendChild(d);
+    });
+    const dots = dotsEl.querySelectorAll('.dot');
+
+    function refresh() {
+      dots.forEach(function (d, i) {
+        d.classList.toggle('active', i === current);
+        d.classList.toggle('done', i < current);
+      });
+    }
+    function show(i) {
+      panels.forEach(function (p) { p.classList.remove('active'); });
+      current = i;
+      panels[i].classList.add('active');
+      refresh();
+    }
+    function next() {
+      if (current < panels.length - 1) show(current + 1);
+      else end();
+    }
+    function end() {
+      if (ended) return;
+      ended = true;
+      root.classList.add('hidden');
+      onEnd();
+    }
+
+    root.addEventListener('click', function (e) {
+      if (e.target.classList.contains('skip-btn')) return;
+      FTSettings.vibrate();
+      FTSfx.play('page');
+      next();
+    });
+    const skip = root.querySelector('.skip-btn');
+    if (skip) skip.addEventListener('click', function (e) { e.stopPropagation(); end(); });
+
+    window.addEventListener('keydown', function (e) {
+      if (root.classList.contains('hidden')) return;
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') next();
+      else if (e.key === 'ArrowLeft' && current > 0) show(current - 1);
+      else if (e.key === 'Escape' && skip) end();
+    });
+    refresh();
+  }
+
+  // ══════════════════════════════════════════════════════
+  // ИГРА
+  // ══════════════════════════════════════════════════════
+  const turnEl   = document.getElementById('turn-num');
+  const symEl    = document.getElementById('sym');
+  const symFill  = document.getElementById('sym-fill');
+  const symVal   = document.getElementById('sym-val');
+  const danichEl = document.getElementById('danich-slot');
+  const foxEl    = document.getElementById('fox-slot');
+  const plateEl  = document.getElementById('plate');
+  const bubbleEl = document.getElementById('bubble');
+  const choicesEl= document.getElementById('choices');
+  const stageEl  = document.getElementById('stage');
+  const loseOv   = document.getElementById('lose-overlay');
+  const endOv    = document.getElementById('end-overlay');
+
+  const state = { turn: 0, sym: START_SYM, busy: false, left: null, timer: 0 };
+
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  // 3 варианта из ещё не использованных: минимум один «хороший»
+  function pickThree(pool) {
+    const good = pool.filter(function (o) { return o.d >= MIN_GOOD; });
+    const first = good.length
+      ? good[Math.floor(Math.random() * good.length)]
+      : pool.slice().sort(function (a, b) { return b.d - a.d; })[0];
+    const rest = shuffle(pool.filter(function (o) { return o !== first; })).slice(0, 2);
+    return shuffle([first].concat(rest));
+  }
+
+  function setFace(slot, who, face, react) {
+    slot.innerHTML = charSVG(who, face);
+    if (react) {
+      slot.classList.remove('react');
+      void slot.offsetWidth;
+      slot.classList.add('react');
+    }
+  }
+
+  function setBubble(html) {
+    bubbleEl.innerHTML = html;
+    bubbleEl.classList.remove('pop');
+    void bubbleEl.offsetWidth;
+    bubbleEl.classList.add('pop');
+  }
+
+  function setSym(v) {
+    state.sym = Math.max(0, Math.min(GOAL_SYM, v));
+    symFill.style.width = state.sym + '%';
+    symVal.textContent = state.sym;
+    symEl.classList.remove('bump');
+    void symEl.offsetWidth;
+    symEl.classList.add('bump');
+  }
+
+  function floatText(text, cls) {
+    const t = document.createElement('div');
+    t.className = 'float-text ' + cls;
+    t.textContent = text;
+    t.style.left = '520px';
+    t.style.top  = '60px';
+    stageEl.appendChild(t);
+    setTimeout(function () { t.remove(); }, 1150);
+  }
+
+  function resetGame() {
+    clearTimeout(state.timer);
+    state.turn = 0;
+    state.busy = false;
+    state.left = { dish: DISHES.slice(), topic: TOPICS.slice() };
+    setSym(START_SYM);
+    plateEl.textContent = '';
+    setFace(danichEl, 'danich', 'open');
+    setFace(foxEl, 'fox', 'neutral');
+  }
+
+  function renderTurn() {
+    const type = state.turn % 2 === 0 ? 'dish' : 'topic';
+    const opts = pickThree(state.left[type]);
+    turnEl.textContent = state.turn + 1;
+    state.busy = false;
+
+    setFace(danichEl, 'danich', 'open');
+    setFace(foxEl, 'fox', 'neutral');
+    setBubble(type === 'dish'
+      ? '<b>Официант:</b> «Что закажем для дамы? Она, кстати, привередлива».'
+      : '<b>Данич:</b> «О чём бы поговорить...»');
+
+    choicesEl.classList.remove('locked');
+    choicesEl.innerHTML = '<div class="kind">' +
+      (type === 'dish' ? 'Выбери блюдо' : 'Выбери тему разговора') + '</div>';
+    opts.forEach(function (o) {
+      const b = document.createElement('button');
+      b.className = 'opt';
+      b.innerHTML = '<span class="ico">' + o.ico + '</span><span>' + o.name + '</span>';
+      b.addEventListener('click', function () { choose(type, o, b); });
+      choicesEl.appendChild(b);
+    });
+  }
+
+  function choose(type, opt, btn) {
+    if (state.busy) return;
+    state.busy = true;
+    FTSettings.vibrate(opt.d < 0 ? 60 : 20);
+    FTSfx.play('tap');
+
+    // использованный вариант больше не выпадает
+    state.left[type] = state.left[type].filter(function (o) { return o !== opt; });
+
+    choicesEl.classList.add('locked');
+    btn.classList.add('picked');
+
+    if (type === 'dish') {
+      plateEl.textContent = opt.ico;
+      plateEl.classList.remove('serve');
+      void plateEl.offsetWidth;
+      plateEl.classList.add('serve');
+    }
+
+    const foxFace = opt.d >= 15 ? 'love' : opt.d >= 5 ? 'happy' : opt.d >= 0 ? 'neutral' : 'annoyed';
+    setFace(foxEl, 'fox', foxFace, true);
+    setTimeout(function () {
+      FTSfx.play(opt.d >= 15 ? 'love' : opt.d >= 5 ? 'good' : opt.d >= 0 ? 'neutral' : 'bad');
+    }, 120);
+    setFace(danichEl, 'danich', opt.d > 0 ? 'happy' : opt.d < 0 ? 'worried' : 'open', true);
+    setBubble('<b>Лиса:</b> «' + opt.line + '»');
+    floatText((opt.d > 0 ? '+' : '') + opt.d, opt.d >= 0 ? 'up' : 'down');
+    setSym(state.sym + opt.d);
+
+    state.timer = setTimeout(function () {
+      state.turn++;
+      if (state.sym >= GOAL_SYM) win();
+      else if (state.turn >= TURNS) lose();
+      else renderTurn();
+    }, REACT_MS);
+  }
+
+  function lose() {
+    FTSettings.vibrate(80);
+    FTSfx.play('lose');
+    document.getElementById('lose-text').textContent =
+      'Симпатия: ' + state.sym + ' из ' + GOAL_SYM + '. Лиса допила чай и посмотрела на часы.';
+    loseOv.classList.add('open');
+  }
+
+  document.getElementById('lose-retry').addEventListener('click', function () {
+    FTSettings.vibrate();
+    loseOv.classList.remove('open');
+    resetGame();
+    renderTurn();
+  });
+
+  // ── Победа → финальная кат-сцена ─────────────────────
+  function win() {
+    FTProgress.markDone(2);
+    FTSettings.vibrate(80);
+    FTSfx.play('win');
+    playFinale();
+  }
+
+  function playFinale() {
+    document.getElementById('finale').classList.remove('hidden');
+  }
+
+  makePager(document.getElementById('finale'), function () {
+    FTProgress.markDone(3);
+    endOv.classList.add('open');
+    FTSettings.vibrate(60);
+    FTSfx.play('love');
+  });
+
+  // ── Навигация ────────────────────────────────────────
+  function goTo(url) {
+    FTMusic.stop();
+    fadeEl.classList.add('on');
+    setTimeout(function () { window.location.href = url; }, 450);
+  }
+  document.getElementById('end-next').addEventListener('click', function () {
+    FTSettings.vibrate();
+    goTo('chapters.html');
+  });
+  document.getElementById('back-btn').addEventListener('click', function () {
+    clearTimeout(state.timer);
+    goTo('chapters.html');
+  });
+
+  // ── Старт ────────────────────────────────────────────
+  const introEl = document.getElementById('intro');
+  resetGame();
+
+  if (location.hash === '#finale') {
+    // Повтор финала из меню глав
+    introEl.classList.add('hidden');
+    renderTurn();
+    playFinale();
+  } else {
+    makePager(introEl, renderTurn);
+  }
+
+  // Музыка стартует с первого касания: браузер не даёт играть звук без жеста
+  FTMusic.play('cafe');
+
+  fadeEl.classList.add('on');
+  setTimeout(function () { fadeEl.classList.remove('on'); }, 80);
+
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+  document.addEventListener('dblclick',     function (e) { e.preventDefault(); });
+})();
+</script>
+</body>
+</html>

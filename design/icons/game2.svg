@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="cityGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5a4d42;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3d322b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <path d="M2,9v10c0,2.8,4,6,7,6s7-3.2,7-6V9L2,9z M5,19h1v-4H5V19z M8,19h1v-4H8V19z M11,19h1v-4H11V19z M14,19h1v-4H14V19z M17,19h1v-4H17V19z"/>
+</svg>

@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FindTheFox — Тиндер</title>
+<link rel="stylesheet" href="shared/style.css">
+<style>
+  /* ══════════════════════════════════════════════════════
+     HUD
+     ══════════════════════════════════════════════════════ */
+  #hud {
+    position: absolute;
+    top: 40px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 40px;
+    z-index: 20;
+    color: var(--title);
+    font-size: 20px;
+    font-weight: 700;
+    pointer-events: none;
+  }
+  #hud .counter {
+    background: rgba(38, 32, 20, 0.85);
+    padding: 10px 20px;
+    border-radius: 22px;
+    border: 2px solid rgba(240, 224, 176, 0.4);
+  }
+  #back-btn {
+    background: transparent;
+    border: 2px solid rgba(240, 224, 176, 0.4);
+    color: rgba(240, 224, 176, 0.85);
+    font-family: inherit;
+    font-size: 17px;
+    padding: 10px 20px;
+    border-radius: 22px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: background 0.12s ease;
+  }
+  #back-btn:hover {
+    background: rgba(240, 224, 176, 0.1);
+  }
+
+  /* ══════════════════════════════════════════════════════
+     СТОПКА КАРТОЧЕК
+     ══════════════════════════════════════════════════════ */
+  #deck {
+    position: absolute;
+    top: 150px;
+    bottom: 250px;
+    left: 60px; right: 60px;
+    z-index: 10;
+  }
+
+  .card {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+      #2e2718 0%,
+      #262014 100%);
+    border: 4px solid var(--btn-border);
+    border-radius: 24px;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+    will-change: transform, opacity;
+    transform-origin: center center;
+    user-select: none;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.05) 0%,
+      rgba(0,0,0,0.15) 100%);
+    pointer-events: none;
+  }
+
+  .card .photo {
+    position: relative;
+    width: 320px;
+    height: 320px;
+    border-radius: 20px;
+    background: linear-gradient(160deg, #4A6A3F 0%, #2A3D2A 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  /* Свой фон фото у каждого вида */
+  .card .photo.bg-hedgehog { background: linear-gradient(160deg, #6A5A3F 0%, #3D332A 100%); }
+  .card .photo.bg-beaver   { background: linear-gradient(160deg, #3F6A6A 0%, #2A3D3D 100%); }
+  .card .photo.bg-boar     { background: linear-gradient(160deg, #5A4A6A 0%, #33293D 100%); }
+  .card .photo.bg-owl      { background: linear-gradient(160deg, #3F4A6A 0%, #232A3D 100%); }
+  .card .photo.bg-bear     { background: linear-gradient(160deg, #6A4A3F 0%, #3D2A23 100%); }
+  .card .photo.bg-fox-animal { background: linear-gradient(160deg, #8A5030 0%, #4A2515 100%); }
+
+  .card .name {
+    margin-top: 22px;
+    font-size: 40px;
+    font-weight: 900;
+    color: var(--title);
+    text-shadow: 2px 2px 0 var(--title-shadow);
+    text-align: center;
+    line-height: 1.1;
+  }
+  .card .age {
+    font-size: 20px;
+    color: var(--subtitle);
+    margin-top: 6px;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+  }
+  .card .bio {
+    margin-top: 18px;
+    font-size: 22px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.9);
+    text-align: center;
+    font-style: italic;
+    padding: 0 12px;
+    max-width: 520px;
+  }
+
+  .card .stamp {
+    position: absolute;
+    top: 40px;
+    padding: 8px 20px;
+    border: 5px solid;
+    border-radius: 12px;
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    opacity: 0;
+    pointer-events: none;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+    z-index: 5;
+  }
+  .card .stamp.like {
+    left: 30px;
+    color: #8FD85A;
+    border-color: #8FD85A;
+    transform: rotate(-15deg);
+  }
+  .card .stamp.nope {
+    right: 30px;
+    color: #FF5555;
+    border-color: #FF5555;
+    transform: rotate(15deg);
+  }
+
+  /* ══════════════════════════════════════════════════════
+     ФИГУРКИ ЖИВОТНЫХ (CSS)
+     ══════════════════════════════════════════════════════ */
+  .animal {
+    position: relative;
+    width: 200px;
+    height: 200px;
+  }
+  .animal .a-head {
+    position: absolute;
+    left: 50%; top: 55%;
+    transform: translate(-50%, -50%);
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: #C06628;
+  }
+  .animal .a-eye {
+    position: absolute;
+    top: 42%;
+    width: 12px; height: 14px;
+    background: #1a1a1a;
+    border-radius: 50%;
+    z-index: 2;
+  }
+  .animal .a-eye.l { left: 32%; }
+  .animal .a-eye.r { right: 32%; }
+  .animal .a-eye::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 3px;
+    width: 4px; height: 4px;
+    background: #fff;
+    border-radius: 50%;
+  }
+  .animal .a-nose {
+    position: absolute;
+    top: 58%; left: 50%;
+    transform: translateX(-50%);
+    width: 16px; height: 12px;
+    background: #1a1a1a;
+    border-radius: 50%;
+    z-index: 3;
+  }
+
+  /* ─── Ёжик ───────────────────────────────────────────── */
+  .animal.hedgehog .a-extra {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 190px; height: 190px;
+    background:
+      repeating-conic-gradient(#3A2818 0deg 10deg, #6B4423 10deg 20deg);
+    border-radius: 50%;
+    z-index: 0;
+    clip-path: polygon(50% 0%, 100% 20%, 100% 60%, 80% 92%, 20% 92%, 0% 60%, 0% 20%);
+  }
+  .animal.hedgehog .a-head {
+    background: #8B6B4A;
+    box-shadow: inset 0 -10px 0 rgba(0,0,0,0.12);
+    z-index: 1;
+    width: 130px; height: 130px;
+  }
+
+  /* ─── Бобёр ──────────────────────────────────────────── */
+  .animal.beaver .a-head {
+    background: #7A5433;
+    border-radius: 50% 50% 45% 45%;
+  }
+  .animal.beaver .a-ear {
+    position: absolute;
+    top: 15%;
+    width: 40px; height: 40px;
+    background: #7A5433;
+    border-radius: 50%;
+    z-index: 1;
+  }
+  .animal.beaver .a-ear.l { left: 8%; }
+  .animal.beaver .a-ear.r { right: 8%; }
+  .animal.beaver .a-teeth {
+    position: absolute;
+    top: 68%; left: 50%;
+    transform: translateX(-50%);
+    width: 24px; height: 16px;
+    background: #F0E0C8;
+    border-radius: 3px;
+    box-shadow: inset 1px 0 0 #C0A888, inset -1px 0 0 #C0A888;
+    z-index: 3;
+  }
+
+  /* ─── Кабан ──────────────────────────────────────────── */
+  .animal.boar .a-head {
+    background: #5A4630;
+    border-radius: 45% 45% 50% 50%;
+  }
+  .animal.boar .a-tusk {
+    position: absolute;
+    bottom: 8%;
+    width: 14px; height: 26px;
+    background: #F0E0C8;
+    border-radius: 4px;
+    z-index: 3;
+  }
+  .animal.boar .a-tusk.l {
+    left: 22%;
+    transform: rotate(-15deg);
+  }
+  .animal.boar .a-tusk.r {
+    right: 22%;
+    transform: rotate(15deg);
+  }
+  .animal.boar .a-ear {
+    position: absolute;
+    top: 22%;
+    width: 30px; height: 45px;
+    background: #3A2A1A;
+    border-radius: 50% 50% 20% 20%;
+  }
+  .animal.boar .a-ear.l { left: 12%; transform: rotate(-25deg); }
+  .animal.boar .a-ear.r { right: 12%; transform: rotate(25deg); }
+
+  /* ─── Сова ───────────────────────────────────────────── */
+  .animal.owl .a-head {
+    background: #8B7A5A;
+    border-radius: 50% 50% 45% 45%;
+    width: 150px; height: 150px;
+  }
+  .animal.owl .a-head::before {
+    content: '';
+    position: absolute;
+    top: 30%; left: 50%;
+    transform: translateX(-50%);
+    width: 130px; height: 70px;
+    background: #E8D6B8;
+    border-radius: 50%;
+    z-index: 1;
+  }
+  .animal.owl .a-eye {
+    width: 24px; height: 24px;
+    top: 38%;
+    z-index: 3;
+  }
+  .animal.owl .a-eye.l { left: 25%; }
+  .animal.owl .a-eye.r { right: 25%; }
+  .animal.owl .a-eye::after {
+    top: 5px; left: 6px;
+    width: 8px; height: 8px;
+  }
+  .animal.owl .a-beak {
+    position: absolute;
+    top: 55%; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 20px solid #E8A030;
+    z-index: 3;
+  }
+  .animal.owl .a-ear {
+    position: absolute;
+    top: 8%;
+    width: 0; height: 0;
+    border-left: 22px solid transparent;
+    border-right: 22px solid transparent;
+    border-bottom: 40px solid #8B7A5A;
+  }
+  .animal.owl .a-ear.l { left: 22%; transform: rotate(-10deg); }
+  .animal.owl .a-ear.r { right: 22%; transform: rotate(10deg); }
+
+  /* ─── Медведь ────────────────────────────────────────── */
+  .animal.bear .a-head {
+    background: #6B4423;
+    width: 160px; height: 160px;
+  }
+  .animal.bear .a-ear {
+    position: absolute;
+    top: 12%;
+    width: 50px; height: 50px;
+    background: #6B4423;
+    border-radius: 50%;
+    z-index: 1;
+  }
+  .animal.bear .a-ear.l { left: 8%; }
+  .animal.bear .a-ear.r { right: 8%; }
+  .animal.bear .a-ear::after {
+    content: '';
+    position: absolute;
+    inset: 10px;
+    background: #A67B5B;
+    border-radius: 50%;
+  }
+  .animal.bear .a-muzzle {
+    position: absolute;
+    top: 55%; left: 50%;
+    transform: translateX(-50%);
+    width: 70px; height: 55px;
+    background: #D8B888;
+    border-radius: 50%;
+    z-index: 1;
+  }
+  .animal.bear .a-nose {
+    z-index: 3;
+    width: 20px; height: 14px;
+  }
+
+  /* ─── Лиса — клон из меню ────────────────────────────── */
+  .photo .fox {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    transform: scale(0.85);
+    transform-origin: center center;
+    pointer-events: none;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     КНОПКИ ДЕЙСТВИЙ
+     ══════════════════════════════════════════════════════ */
+  #actions {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 60px;
+    z-index: 20;
+  }
+  .action-btn {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 5px solid;
+    font-size: 40px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.06s ease-out;
+    font-family: inherit;
+    line-height: 1;
+    padding: 0;
+  }
+  .action-btn:active { transform: scale(0.88); }
+  .action-btn.nope {
+    color: #FF5555;
+    border-color: #FF5555;
+    background: rgba(38, 32, 20, 0.95);
+    box-shadow: 0 6px 0 rgba(180, 30, 30, 0.4);
+  }
+  .action-btn.nope:hover { background: rgba(255, 85, 85, 0.15); }
+  .action-btn.like {
+    color: #8FD85A;
+    border-color: #8FD85A;
+    background: rgba(38, 32, 20, 0.95);
+    box-shadow: 0 6px 0 rgba(100, 180, 40, 0.4);
+  }
+  .action-btn.like:hover { background: rgba(143, 216, 90, 0.15); }
+
+  /* ══════════════════════════════════════════════════════
+     МЭТЧ-ПОПАП
+     ══════════════════════════════════════════════════════ */
+  #match-popup {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 60;
+    background: rgba(0, 0, 0, 0.65);
+  }
+  #match-popup.open { display: flex; }
+
+  .match-box {
+    background: #262014;
+    border: 4px solid var(--btn-border);
+    border-radius: 24px;
+    padding: 32px 40px;
+    max-width: 560px;
+    text-align: center;
+    color: #fff;
+    animation: popIn 0.2s ease-out;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  }
+  @keyframes popIn {
+    0%   { opacity: 0; transform: scale(0.85); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .match-box .mb-title {
+    font-size: 40px;
+    font-weight: 900;
+    color: #8FD85A;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+    margin-bottom: 10px;
+    height: 46px;
+    line-height: 46px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .match-box .mb-title.fox {
+    color: var(--subtitle);
+  }
+  .match-box .mb-title.nope {
+    color: #E8A030;
+  }
+  .match-box .mb-name {
+    font-size: 26px;
+    color: var(--title);
+    margin-bottom: 18px;
+    font-weight: 700;
+  }
+  .match-box .mb-quote {
+    font-size: 22px;
+    font-style: italic;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 24px;
+    height: 100px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .match-box .mb-btn {
+    display: inline-block;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     ПОБЕДА
+     ══════════════════════════════════════════════════════ */
+  #win-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 80;
+    background: radial-gradient(circle at 50% 50%,
+      rgba(255, 200, 80, 0.35) 0%,
+      rgba(0, 0, 0, 0.8) 70%);
+  }
+  #win-overlay.open { display: flex; }
+  #win-overlay .win-box {
+    text-align: center;
+    color: var(--title);
+    animation: popIn 0.3s ease-out;
+    padding: 20px;
+    max-width: 620px;
+  }
+  #win-overlay h2 {
+    font-size: 54px;
+    font-weight: 900;
+    margin: 0 0 16px;
+    text-shadow: 4px 4px 0 var(--title-shadow);
+    line-height: 1.1;
+  }
+  #win-overlay p {
+    font-size: 22px;
+    color: var(--subtitle);
+    margin: 0 0 32px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  #swipe-hint {
+    position: absolute;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(240, 224, 176, 0.55);
+    font-size: 16px;
+    letter-spacing: 1px;
+    z-index: 15;
+    pointer-events: none;
+    animation: hintPulse 2s ease-in-out infinite;
+    white-space: nowrap;
+  }
+  @keyframes hintPulse {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 0.9; }
+  }
+</style>
+</head>
+<body>
+<div id="game" class="scene">
+  <div class="bg-forest"></div>
+  <canvas id="particles" class="particles"></canvas>
+  <div class="vignette"></div>
+
+  <div id="hud">
+    <button id="back-btn">← Меню</button>
+    <div class="counter">Найдено Лис: <span id="fox-count">0</span>/3</div>
+  </div>
+
+  <div id="deck"></div>
+
+  <div id="actions">
+    <button class="action-btn nope" id="btn-nope" aria-label="Пропустить">✕</button>
+    <button class="action-btn like" id="btn-like" aria-label="Лайк">♥</button>
+  </div>
+
+  <div id="swipe-hint">← свайп влево — пропустить · свайп вправо — лайк →</div>
+
+  <div id="match-popup">
+    <div class="match-box">
+      <div class="mb-title" id="mb-title">Не сложилось…</div>
+      <div class="mb-name" id="mb-name">—</div>
+      <div class="mb-quote" id="mb-quote">—</div>
+      <button class="btn btn-sm mb-btn" id="mb-continue">Продолжить</button>
+    </div>
+  </div>
+
+  <div id="win-overlay">
+    <div class="win-box">
+      <h2>Лиса Арина найдена!</h2>
+      <p>«Ладно, уговорил. Но сначала докажи, что ты меня достоин»</p>
+      <button class="btn btn-lg" id="win-next">Дальше →</button>
+    </div>
+  </div>
+
+  <div class="fade" id="fade"></div>
+</div>
+
+<script src="shared/settings.js"></script>
+<script src="shared/particles.js"></script>
+<script src="shared/progress.js"></script>
+<script src="shared/sfx.js"></script>
+<script src="shared/music.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const gameEl = document.getElementById('game');
+  FTSettings.fitScene(gameEl);
+  FTParticles.attach(document.getElementById('particles')).start();
+
+  // ══════════════════════════════════════════════════════
+  // АНКЕТЫ
+  // ══════════════════════════════════════════════════════
+  const ANIMALS = [
+    { key: 'hedgehog', name: 'Ежиха Зина', age: '127 ёжиков',
+      bio: 'Колючая, но верная. Ищу того, у кого есть броня.',
+      reject: '«У тебя нет иголок. Прости, нам не по пути».' },
+    { key: 'beaver', name: 'Бобриха Оля', age: '34 плотины',
+      bio: 'Грызу проблемы. Люблю плотины и романтику у воды.',
+      reject: '«Ты не грызёшь деревья. Как-то это… не то».' },
+    { key: 'boar', name: 'Кабаниха Людмила', age: '58 желудей',
+      bio: 'Весёлая, шумная, с плохим слухом. Приходи громко.',
+      reject: '«Чё-чё? Я тебя не слышу! Пока!»' },
+    { key: 'owl', name: 'Совунья Маргарита', age: '19 бессонных ночей',
+      bio: 'Не сплю по ночам. Ищу того, кто тоже. Но не из-за меня.',
+      reject: '«У-ху. Ты слишком дневной. Не мой типаж. У-ху».' },
+    { key: 'bear', name: 'Медведица Катя', age: '12 зим',
+      bio: 'Зимой сплю, летом гуляю. Люблю мёд и массаж лап.',
+      reject: '«Мёда нет? Лапы не массируешь? Всё, следующий».' },
+    { key: 'fox-animal', name: 'Лиса Арина', age: 'всегда 27',
+      bio: 'Ускользаю, дразню, но если поймаешь — останусь. Может быть.',
+      isFox: true }
+  ];
+
+  const FOX_FIRST_REPLIES = [
+    '«Ой, мне пора! 🦊»',
+    '«У меня дела. Лесные. Пока!»'
+  ];
+
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function buildDeck() {
+    const total = 15;
+    const fox1 = randInt(3, 5);
+    const fox2 = randInt(8, 11);
+    // Третья Лиса — строго внутри колоды (индексы 0..total-1).
+    let fox3 = randInt(13, total - 1);
+    while (fox3 <= fox2) fox3 = randInt(13, total - 1);
+
+    const nonFox = ANIMALS.filter(a => !a.isFox);
+    const pool = [];
+    let prevIdx = -1;
+
+    for (let i = 0; i < total; i++) {
+      if (i === fox1 || i === fox2 || i === fox3) {
+        pool.push(Object.assign({}, ANIMALS.find(a => a.isFox)));
+      } else {
+        let idx;
+        let tries = 0;
+        do {
+          idx = randInt(0, nonFox.length - 1);
+          tries++;
+        } while (idx === prevIdx && tries < 5);
+        prevIdx = idx;
+        pool.push(Object.assign({}, nonFox[idx]));
+      }
+    }
+    return pool;
+  }
+
+  let deck = buildDeck();
+  let currentIndex = 0;
+  let foxMatches = 0;
+  let isTransitioning = false;
+
+  const deckEl = document.getElementById('deck');
+  const foxCountEl = document.getElementById('fox-count');
+  const matchPopup = document.getElementById('match-popup');
+  const mbTitle = document.getElementById('mb-title');
+  const mbName = document.getElementById('mb-name');
+  const mbQuote = document.getElementById('mb-quote');
+  const winOverlay = document.getElementById('win-overlay');
+  const fadeEl = document.getElementById('fade');
+
+  // ══════════════════════════════════════════════════════
+  // ШАБЛОНЫ ФИГУРОК
+  // ══════════════════════════════════════════════════════
+  function animalHTML(key) {
+    switch (key) {
+      case 'hedgehog':
+        return `
+          <div class="animal hedgehog">
+            <div class="a-extra"></div>
+            <div class="a-head">
+              <div class="a-eye l"></div>
+              <div class="a-eye r"></div>
+              <div class="a-nose"></div>
+            </div>
+          </div>`;
+      case 'beaver':
+        return `
+          <div class="animal beaver">
+            <div class="a-head">
+              <div class="a-ear l"></div>
+              <div class="a-ear r"></div>
+              <div class="a-eye l"></div>
+              <div class="a-eye r"></div>
+              <div class="a-nose"></div>
+              <div class="a-teeth"></div>
+            </div>
+          </div>`;
+      case 'boar':
+        return `
+          <div class="animal boar">
+            <div class="a-head">
+              <div class="a-ear l"></div>
+              <div class="a-ear r"></div>
+              <div class="a-eye l"></div>
+              <div class="a-eye r"></div>
+              <div class="a-nose"></div>
+              <div class="a-tusk l"></div>
+              <div class="a-tusk r"></div>
+            </div>
+          </div>`;
+      case 'owl':
+        return `
+          <div class="animal owl">
+            <div class="a-head">
+              <div class="a-ear l"></div>
+              <div class="a-ear r"></div>
+              <div class="a-eye l"></div>
+              <div class="a-eye r"></div>
+              <div class="a-beak"></div>
+            </div>
+          </div>`;
+      case 'bear':
+        return `
+          <div class="animal bear">
+            <div class="a-head">
+              <div class="a-ear l"></div>
+              <div class="a-ear r"></div>
+              <div class="a-muzzle"></div>
+              <div class="a-eye l"></div>
+              <div class="a-eye r"></div>
+              <div class="a-nose"></div>
+            </div>
+          </div>`;
+      case 'fox-animal':
+        return `
+          <div class="fox">
+            <div class="body"></div>
+            <div class="ear left"></div>
+            <div class="ear right"></div>
+            <div class="face">
+              <div class="eye left"></div>
+              <div class="eye right"></div>
+              <div class="cheek left"></div>
+              <div class="cheek right"></div>
+              <div class="nose"></div>
+            </div>
+          </div>`;
+      default:
+        return `<div class="animal"><div class="a-head"></div></div>`;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // РЕНДЕР
+  // ══════════════════════════════════════════════════════
+  function renderCard(animal, isTop) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="stamp like">ЛАЙК</div>
+      <div class="stamp nope">МИМО</div>
+      <div class="photo bg-${animal.key}">${animalHTML(animal.key)}</div>
+      <div class="name">${animal.name}</div>
+      <div class="age">${animal.age}</div>
+      <div class="bio">${animal.bio}</div>
+    `;
+    if (isTop) {
+      attachSwipeHandlers(card);
+    } else {
+      card.style.transform = 'translateY(20px) scale(0.94)';
+    }
+    return card;
+  }
+
+  function renderDeck() {
+    deckEl.innerHTML = '';
+    const visible = deck.slice(currentIndex, currentIndex + 3);
+    visible.forEach((animal, i) => {
+      const card = renderCard(animal, i === 0);
+      card.style.zIndex = String(10 - i);
+      deckEl.appendChild(card);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════
+  // СВАЙП
+  // ══════════════════════════════════════════════════════
+  function attachSwipeHandlers(card) {
+    let startX = 0, startY = 0;
+    let curX = 0, curY = 0;
+    let pointerDown = false;
+    const THRESHOLD = 100;
+
+    function updateStamps() {
+      const likeStamp = card.querySelector('.stamp.like');
+      const nopeStamp = card.querySelector('.stamp.nope');
+      const k = Math.min(Math.abs(curX) / THRESHOLD, 1);
+      if (curX > 0) {
+        likeStamp.style.opacity = k.toFixed(2);
+        nopeStamp.style.opacity = '0';
+      } else if (curX < 0) {
+        nopeStamp.style.opacity = k.toFixed(2);
+        likeStamp.style.opacity = '0';
+      } else {
+        likeStamp.style.opacity = '0';
+        nopeStamp.style.opacity = '0';
+      }
+    }
+
+    function onDown(e) {
+      if (isTransitioning) return;
+      pointerDown = true;
+      const p = e.touches ? e.touches[0] : e;
+      startX = p.clientX;
+      startY = p.clientY;
+      curX = 0; curY = 0;
+      card.style.transition = 'none';
+      FTSettings.vibrate(6);
+    }
+    function onMove(e) {
+      if (!pointerDown) return;
+      const p = e.touches ? e.touches[0] : e;
+      curX = p.clientX - startX;
+      curY = p.clientY - startY;
+      const rot = curX / 20;
+      card.style.transform =
+        `translate(${curX}px, ${curY}px) rotate(${rot}deg)`;
+      updateStamps();
+      if (e.cancelable && Math.abs(curX) > 8) e.preventDefault();
+    }
+    function onUp() {
+      if (!pointerDown) return;
+      pointerDown = false;
+      card.style.transition =
+        'transform 0.22s ease-out, opacity 0.22s ease-out';
+      if (curX > THRESHOLD) flyOut(card, 1);
+      else if (curX < -THRESHOLD) flyOut(card, -1);
+      else {
+        // Свайп ниже порога — возвращаем карточку и прячем штампы.
+        curX = 0;
+        curY = 0;
+        card.style.transform = '';
+        updateStamps();
+      }
+    }
+
+    card.addEventListener('mousedown', onDown);
+    card.addEventListener('touchstart', onDown, { passive: true });
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchend', onUp);
+    window.addEventListener('touchcancel', onUp);
+  }
+
+  // ══════════════════════════════════════════════════════
+  // УЛЁТ + МГНОВЕННАЯ РЕАКЦИЯ
+  // ══════════════════════════════════════════════════════
+  function flyOut(card, direction) {
+    if (isTransitioning) return;
+    isTransitioning = true;
+    FTSfx.play(direction > 0 ? 'good' : 'neutral');
+
+    const currentAnimal = deck[currentIndex];
+    const isFox = !!(currentAnimal && currentAnimal.isFox);
+
+    // запускаем анимацию улёта — карточка пусть летит фоном
+    card.style.transform =
+      `translate(${direction * 800}px, ${direction * 100}px) rotate(${direction * 30}deg)`;
+    card.style.opacity = '0';
+
+    if (direction > 0) {
+      // лайк — попап сразу, не ждём анимации
+      handleLike(isFox);
+    } else {
+      // пропуск — короткая пауза, чтобы карточка успела отлететь
+      setTimeout(() => nextCard(), 160);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // ЛАЙК / ОТКАЗ
+  // ══════════════════════════════════════════════════════
+  function handleLike(isFox) {
+    const current = deck[currentIndex];
+    if (isFox) {
+      foxMatches++;
+      foxCountEl.textContent = String(foxMatches);
+      if (foxMatches >= 3) {
+        showWin();
+      } else {
+        showMatch(true, '🦊 Лиса!',
+          FOX_FIRST_REPLIES[foxMatches - 1],
+          () => nextCard());
+      }
+    } else {
+      showMatch(false, 'Не сложилось…', current.name,
+        current.reject || '«Не судьба».',
+        () => nextCard());
+    }
+  }
+
+  function showMatch(isFox, title, nameOrQuote, quoteOrCallback, maybeCallback) {
+    let title_, name_, quote_, cb;
+    FTSfx.play(isFox ? 'love' : 'bad');
+    if (isFox) {
+      title_ = title;
+      name_ = 'Лиса Арина';
+      quote_ = nameOrQuote;
+      cb = quoteOrCallback;
+    } else {
+      title_ = title;
+      name_ = nameOrQuote;
+      quote_ = quoteOrCallback;
+      cb = maybeCallback;
+    }
+
+    mbTitle.textContent = title_;
+    mbTitle.className = 'mb-title' + (isFox ? ' fox' : ' nope');
+    mbName.textContent = name_;
+    mbQuote.textContent = quote_;
+    matchPopup.classList.add('open');
+
+    FTSettings.vibrate(); FTSfx.play('tap');
+
+    const mbContinue = document.getElementById('mb-continue');
+    function close() {
+      matchPopup.classList.remove('open');
+      mbContinue.removeEventListener('click', close);
+      if (cb) cb();
+    }
+    const fresh = mbContinue.cloneNode(true);
+    mbContinue.parentNode.replaceChild(fresh, mbContinue);
+    fresh.addEventListener('click', close);
+  }
+
+  function nextCard() {
+    currentIndex++;
+    isTransitioning = false;
+    if (currentIndex >= deck.length) {
+      finishLevel();
+      return;
+    }
+    renderDeck();
+  }
+
+  // ══════════════════════════════════════════════════════
+  // КНОПКИ
+  // ══════════════════════════════════════════════════════
+  function getTopCard() {
+    return deckEl.querySelector('.card');
+  }
+
+  document.getElementById('btn-nope').addEventListener('click', () => {
+    if (isTransitioning) return;
+    const c = getTopCard();
+    if (!c) return;
+    FTSettings.vibrate(); FTSfx.play('tap');
+    flyOut(c, -1);
+  });
+
+  document.getElementById('btn-like').addEventListener('click', () => {
+    if (isTransitioning) return;
+    const c = getTopCard();
+    if (!c) return;
+    FTSettings.vibrate(); FTSfx.play('tap');
+    flyOut(c, 1);
+  });
+
+  // ══════════════════════════════════════════════════════
+  // ПОБЕДА
+  // ══════════════════════════════════════════════════════
+  function showWin() {
+    winOverlay.classList.add('open');
+    FTSettings.vibrate(50);
+    FTSfx.play('win');
+  }
+
+  document.getElementById('win-next').addEventListener('click', () => {
+    FTSettings.vibrate(); FTSfx.play('tap');
+    fadeEl.classList.add('on');
+    setTimeout(() => {
+      FTProgress.markDone(0);
+      window.location.href = 'scene_fox_escapes.html';
+    }, 450);
+  });
+
+  function finishLevel() {
+    FTProgress.markDone(0);
+    fadeEl.classList.add('on');
+    setTimeout(() => {
+      window.location.href = 'scene_fox_escapes.html';
+    }, 450);
+  }
+
+  // ══════════════════════════════════════════════════════
+  // НАЗАД
+  // ══════════════════════════════════════════════════════
+  document.getElementById('back-btn').addEventListener('click', () => {
+    fadeEl.classList.add('on');
+    setTimeout(() => {
+      window.location.href = 'chapters.html';
+    }, 450);
+  });
+
+  // ══════════════════════════════════════════════════════
+  // СТАРТ
+  // ══════════════════════════════════════════════════════
+  FTMusic.play('forest');
+  fadeEl.classList.add('on');
+  setTimeout(() => {
+    fadeEl.classList.remove('on');
+    renderDeck();
+  }, 60);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<svg width="300" height="300" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Градиент, как на исходной картинке -->
+    <linearGradient id="heartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFA6C9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF5C97;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Пухлое и широкое сердце без хвоста -->
+  <path d="M 50 85 
+           C 5 65, -5 25, 20 10 
+           C 35 0, 48 18, 50 28 
+           C 52 18, 65 0, 80 10 
+           C 105 25, 95 65, 50 85 Z" 
+        fill="url(#heartGradient)" 
+        stroke="#FF4081" 
+        stroke-width="3" 
+        stroke-linejoin="round" />
+</svg>
