@@ -326,16 +326,30 @@ window.FTMusic = (function () {
     return (saved.pos + elapsed) % dur;
   }
 
-  // Браузер не даёт звук без жеста: ждём касание и запускаем
+  // Браузер не даёт звук без жеста: ждём касание и запускаем.
+  // pointerdown мышью не считается «активацией», поэтому слушаем и click/pointerup/touchend
+  // и не снимаем слушатели, пока контекст реально не запустился.
+  let unlockOn = false;
   function waitForGesture(name, buf, offset) {
+    if (unlockOn) return;
+    unlockOn = true;
+    const events = ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown'];
     const unlock = function () {
       ctx.resume().then(function () {
-        if (wanted === name && !cur) startBuffer(name, buf, offset);
-      });
+        if (ctx.state !== 'running') return;
+        events.forEach(function (ev) { document.removeEventListener(ev, unlock, true); });
+        unlockOn = false;
+        const st = window.FTSettings ? FTSettings.load() : { music: true };
+        if (wanted && !cur && st.music) {
+          getBuffer(wanted).then(function (b) {
+            if (wanted && !cur && ctx.state === 'running') {
+              startBuffer(wanted, b, wanted === name ? offset : 0);
+            }
+          });
+        }
+      }).catch(function () {});
     };
-    ['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) {
-      document.addEventListener(ev, unlock, { once: true });
-    });
+    events.forEach(function (ev) { document.addEventListener(ev, unlock, true); });
   }
 
   function stop() {
