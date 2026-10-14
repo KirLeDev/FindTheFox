@@ -48,6 +48,7 @@ const out = `<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>FindTheFox</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='20 40 260 260'%3E%3Cpolygon points='66,109 96,54 126,109' fill='%23C06628' transform='rotate(-12 96 95)'/%3E%3Cpolygon points='174,109 204,54 234,109' fill='%23C06628' transform='rotate(12 204 95)'/%3E%3Cpolygon points='82,104 96,78 110,104' fill='%237A3A12' transform='rotate(-12 96 95)'/%3E%3Cpolygon points='190,104 204,78 218,104' fill='%237A3A12' transform='rotate(12 204 95)'/%3E%3Cellipse cx='150' cy='180' rx='100' ry='110' fill='%23C06628'/%3E%3Cellipse cx='150' cy='165' rx='65' ry='55' fill='%23E8B98A'/%3E%3Ccircle cx='128' cy='166' r='9' fill='%231A1A1A'/%3E%3Ccircle cx='172' cy='166' r='9' fill='%231A1A1A'/%3E%3Cellipse cx='150' cy='192' rx='10' ry='7' fill='%231A1A1A'/%3E%3C/svg%3E">
 <style>
   html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
   #stage { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
