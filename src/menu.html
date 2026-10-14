@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FindTheFox</title>
+<link rel="stylesheet" href="shared/style.css">
+<style>
+  /* ── Заголовок ─────────────────────────────────────── */
+  #title-block {
+    position: absolute;
+    top: 80px; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    text-align: center;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .title {
+    font-size: 72px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    color: var(--title);
+    text-shadow: 3px 3px 4px var(--title-shadow);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .subtitle {
+    display: block;
+    margin-top: 8px;
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--subtitle);
+    text-shadow: 2px 2px 2px rgba(51,26,0,0.5);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .version {
+    position: absolute;
+    top: 220px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 14px;
+    color: rgba(255,255,255,0.3);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  /* ── Персонаж ─────────────────────────────────────── */
+  #character-wrap {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.5s ease 0.2s;
+    z-index: 5;
+  }
+
+  /* Моргание — короткий dip глаз раз в ~4 секунды */
+  @keyframes blink {
+    0%, 92%, 96%, 100% { transform: scaleY(1); }
+    94%                 { transform: scaleY(0.1); }
+  }
+  #character-wrap.floating .fox .eye {
+    animation: blink 4s ease-in-out infinite;
+  }
+
+  /* ── Кнопки ───────────────────────────────────────── */
+  #buttons {
+    position: absolute;
+    bottom: 120px; left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    z-index: 10;
+  }
+  #buttons .btn { opacity: 0; }
+
+  /* ── Intro ────────────────────────────────────────── */
+  #game.intro .title    { opacity: 1; }
+  #game.intro .subtitle { opacity: 1; transition-delay: 0.2s; }
+  #game.intro .version  { opacity: 0.3; transition-delay: 0.4s; }
+  #game.intro #character-wrap { opacity: 1; }
+  #game.intro #buttons .btn {
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+  #game.intro #play     { animation-delay: 0.2s; }
+  #game.intro #chapters { animation-delay: 0.1s; }
+  #game.intro #settings { animation-delay: 0s;   }
+</style>
+</head>
+<body>
+<div id="game" class="scene">
+  <div class="bg-forest"></div>
+  <canvas id="particles" class="particles"></canvas>
+  <div class="vignette"></div>
+
+  <div id="title-block">
+    <div class="title">FindTheFox</div>
+    <div class="subtitle">найди свою лису</div>
+    <div class="version">v0.1</div>
+  </div>
+
+  <div class="character center-abs floating" id="character-wrap">
+    <div class="fox">
+      <div class="body"></div>
+      <div class="ear left"></div>
+      <div class="ear right"></div>
+      <div class="face">
+        <div class="eye left"></div>
+        <div class="eye right"></div>
+        <div class="cheek left"></div>
+        <div class="cheek right"></div>
+        <div class="nose"></div>
+      </div>
+    </div>
+    <div class="fox-shadow"></div>
+  </div>
+
+  <div id="buttons">
+    <button class="btn btn-lg" id="play">Играть</button>
+    <button class="btn" id="chapters">Главы</button>
+    <button class="btn" id="settings">Настройки</button>
+  </div>
+
+  <div class="blocker" id="blocker"></div>
+
+  <div class="panel" id="panel">
+    <h2>Настройки</h2>
+    <label class="setting-row"><span>Звук</span>
+      <input type="checkbox" id="tg-sound"></label>
+    <label class="setting-row"><span>Музыка</span>
+      <input type="checkbox" id="tg-music"></label>
+    <label class="setting-row"><span>Вибрация</span>
+      <input type="checkbox" id="tg-vib"></label>
+    <button class="btn btn-sm" id="close-panel"
+      style="display:block;margin:24px auto 0">Назад</button>
+  </div>
+
+  <div class="fade" id="fade"></div>
+</div>
+
+<script src="shared/settings.js"></script>
+<script src="shared/particles.js"></script>
+<script src="shared/progress.js"></script>
+<script src="shared/sfx.js"></script>
+<script src="shared/music.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const gameEl      = document.getElementById('game');
+  const fadeEl      = document.getElementById('fade');
+  const panel       = document.getElementById('panel');
+  const blocker     = document.getElementById('blocker');
+  const playBtn     = document.getElementById('play');
+  const chaptersBtn = document.getElementById('chapters');
+  const settingsBtn = document.getElementById('settings');
+  const closeBtn    = document.getElementById('close-panel');
+
+  // ── Скейл сцены ──────────────────────────────────────
+  FTSettings.fitScene(gameEl);
+
+  // ── Частицы ──────────────────────────────────────────
+  FTParticles.attach(document.getElementById('particles')).start();
+
+  // ── Музыка ───────────────────────────────────────────
+  FTMusic.play('forest');
+
+  // ── Настройки ────────────────────────────────────────
+  const persist = FTSettings.bindToggles(
+    document.getElementById('tg-sound'),
+    document.getElementById('tg-music'),
+    document.getElementById('tg-vib')
+  );
+
+  // ── Панель настроек ──────────────────────────────────
+  function openSettings() {
+    if (panel.classList.contains('open')) return;
+    FTSettings.vibrate(); FTSfx.play('tap');
+    panel.classList.add('open');
+    blocker.classList.add('open');
+  }
+  function closeSettings() {
+    if (!panel.classList.contains('open')) return;
+    persist();
+    FTSettings.vibrate(); FTSfx.play('tap');
+    panel.classList.remove('open');
+    blocker.classList.remove('open');
+  }
+  settingsBtn.addEventListener('click', openSettings);
+  closeBtn.addEventListener('click', closeSettings);
+  blocker.addEventListener('click', closeSettings);
+
+  // ── Переходы ─────────────────────────────────────────
+  let isTransitioning = false;
+
+  function navigate(url) {
+    if (isTransitioning) return;
+    if (panel.classList.contains('open')) return;
+    isTransitioning = true;
+    persist();
+    fadeEl.classList.add('on');
+    setTimeout(function () {
+      window.location.href = url;
+    }, 450);
+  }
+
+  playBtn.addEventListener('click', function () {
+    FTSettings.vibrate(); FTSfx.play('tap');
+    // Глава 1 не пройдена — сначала интро (из него попадём в игру).
+    // Пройдена — значит игрок продолжает: открываем список глав.
+    const status = FTProgress.getStatus(0);
+    if (status === 'unlocked') {
+      navigate('scene_intro.html');
+    } else {
+      navigate('chapters.html');
+    }
+  });
+  chaptersBtn.addEventListener('click', function () {
+    FTSettings.vibrate(); FTSfx.play('tap');
+    navigate('chapters.html');
+  });
+
+  // ── Intro + idle ─────────────────────────────────────
+  requestAnimationFrame(function () {
+    gameEl.classList.add('intro');
+    setTimeout(function () {
+      gameEl.classList.add('idle');       // парение + тень пульсирует
+      document.getElementById('character-wrap').classList.add('floating');
+    }, 1200);
+  });
+
+  // ── Android back: закрыть панель или выйти ───────────
+  history.pushState({ menu: true }, '');
+  window.addEventListener('popstate', function () {
+    if (panel.classList.contains('open')) {
+      closeSettings();
+      history.pushState({ menu: true }, '');
+    }
+  });
+
+  // ── Мелкая защита ────────────────────────────────────
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('dblclick',     e => e.preventDefault());
+})();
+</script>
+</body>
+</html>
